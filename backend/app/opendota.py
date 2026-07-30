@@ -44,6 +44,9 @@ class OpenDotaClient:
     async def get_recent_matches(self, steam_id: int) -> Any | None:
         return await self._request("GET", f"/players/{steam_id}/recentMatches")
 
+    async def get_player(self, steam_id: int) -> Any | None:
+        return await self._request("GET", f"/players/{steam_id}")
+
     async def get_match(self, match_id: int) -> Any | None:
         return await self._request("GET", f"/matches/{match_id}")
 

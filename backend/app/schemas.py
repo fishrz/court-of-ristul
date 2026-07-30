@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 ParseStatus = Literal["pending", "parsing", "parsed", "failed"]
 TrialStatus = Literal["waiting", "evidence", "voting", "closed"]
@@ -15,6 +15,16 @@ class ORMModel(BaseModel):
 class PlayerCreate(BaseModel):
     steam_id: int = Field(gt=0)
     display_name: str = Field(min_length=1, max_length=100)
+
+    @field_validator("steam_id")
+    @classmethod
+    def normalize_steam_id(cls, value: int) -> int:
+        steam_id64_offset = 76561197960265728
+        if value >= steam_id64_offset:
+            value -= steam_id64_offset
+        if value > 0xFFFFFFFF:
+            raise ValueError("steam_id must be a 32-bit account_id or valid SteamID64")
+        return value
 
 
 class PlayerRead(ORMModel):
