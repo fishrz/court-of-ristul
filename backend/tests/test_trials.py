@@ -477,3 +477,20 @@ def test_stale_timer_does_not_settle_a_different_trial(trial_app) -> None:
             return trial.status
 
     assert asyncio.run(run()) == "voting"
+
+
+def test_trial_state_exposes_vote_detail(trial_app) -> None:
+    """状态里要有投票明细，否则客户端重连后无法还原'我投过谁'。"""
+    client, factory = trial_app
+    trial_id, player_ids = _open_and_attend(client, factory)
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+    client.post(
+        f"/api/trials/{trial_id}/vote",
+        json={"voter_id": player_ids[0], "nominee_id": player_ids[1]},
+    )
+
+    state = client.get(f"/api/trials/{trial_id}").json()
+    assert state["votes"] == [
+        {"voter_id": player_ids[0], "nominee_id": player_ids[1]}
+    ]
+    assert state["tally"] == {str(player_ids[1]): 1}

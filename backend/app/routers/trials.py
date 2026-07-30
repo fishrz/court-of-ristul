@@ -50,6 +50,12 @@ def _trial_payload(trial: Trial, tally: dict[str, int]) -> dict[str, Any]:
         here=len(trial.attendances),
         total=len([player for player in trial.match.players if player.is_our_team]),
         tally=tally,
+        # 投票明细：让客户端在重连后能还原"谁投了谁"，
+        # 仅有聚合 tally 时无法判断本人是否已投过票。
+        votes=[
+            {"voter_id": vote.voter_id, "nominee_id": vote.nominee_id}
+            for vote in trial.votes
+        ],
         ai_verdict=_json(trial.ai_verdict_json),
         verdict=_json(trial.verdict_json),
         ai_agrees=(
