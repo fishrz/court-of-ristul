@@ -9,9 +9,14 @@
    ============================================================ */
 
 const API = (function () {
-  // 同源部署时走相对路径；本地 file:// 或 4311 静态预览时打到 8000
+  // 生产（同源部署）走相对路径，由 Caddy 反代到后端。
+  // 本地开发：静态预览端口和后端端口不同，必须显式打到 8010。
+  // 判据用「回环地址且不是 8010 本身」，不要写死某个静态端口号——
+  // 换个预览端口就会静默落到 /api 分支，请求全 404。
   const o = location.origin;
-  if (o.startsWith("http") && !o.includes(":4311")) return "/api";
+  const isLoopback = /^https?:\/\/(127\.0\.0\.1|localhost|\[::1\])(:|$)/.test(o);
+  if (o.startsWith("http") && !isLoopback) return "/api";
+  if (isLoopback && o.includes(":8010")) return "/api";
   return "http://127.0.0.1:8010/api";
 })();
 
@@ -170,11 +175,12 @@ async function loadMatch(matchId) {
         try { nm = (JSON.parse(p.metrics_json || "{}").name) || ""; } catch (e) {}
         return {
           n: nm || ("玩家" + (i + 1)),
-          h: i === 0 ? "你 · 发起人" : (p.hero_name || ""),
+          h: p.hero_name || "",
           // 数据库 players.id，attend / 到场广播都靠它对号入座
           player_id: p.player_id ?? null,
-          here: i === 0,
-          d: [0, 1400, 3200, 5400, 0][i] || 0
+          // 真实模式下没有人预先在场：到庭一律由服务端 attend 事件点亮。
+          // 不要在这里塞 here:true 或假延迟 d，否则一个人进候审室会看到全员自动就位。
+          here: false
         };
       });
     }

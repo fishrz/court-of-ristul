@@ -90,9 +90,27 @@ async function openTrial(matchId) {
     return null;
   }
   Live.connect(Trial.id);
+  await attendLive();
   await syncTrialState(Trial.id);
   return Trial.id;
 }
+
+/* 我到庭了：告诉服务端，服务端广播给其他四个人。
+   接口幂等，重复调用不会重复记录到场。 */
+async function attendLive() {
+  if (!Trial.id || Trial.simulated || Trial.me == null) return false;
+  try {
+    await api("/trials/" + Trial.id + "/attend", {
+      method: "POST",
+      body: JSON.stringify({ player_id: Trial.me })
+    });
+    return true;
+  } catch (err) {
+    console.warn("[法庭] 到庭登记失败：", err.message);
+    return false;
+  }
+}
+window.attendLive = attendLive;
 
 /* ---------- 权威状态同步（重连 / 回前台 / 首次进入都走它） ---------- */
 async function syncTrialState(trialId) {
@@ -109,10 +127,10 @@ async function syncTrialState(trialId) {
   // 到场情况回填到候审室
   // 后端 attendances 是扁平的 player_id 数组，不是对象数组
   const here = new Set(t.attendances || []);
-  SEATS.forEach((s, i) => {
-    const pid = s.player_id;
-    if (pid != null) s.here = here.has(pid);
-    else if (i === 0) s.here = true;
+  SEATS.forEach((s) => {
+    // 只认服务端到场名单。没有 player_id 的座位无法对号入座，一律视为未到，
+    // 不能默认把第一个座位当成"我"点亮。
+    s.here = s.player_id != null && here.has(s.player_id);
   });
   if (document.querySelector("#sW.on")) {
     renderSeatStates();
@@ -288,6 +306,14 @@ function renderSeatStates() {
     d.classList.toggle("here", !!p.here);
     const pfp = d.querySelector(".pfp");
     if (pfp) pfp.innerHTML = p.here ? "&#10003;" : "&#183;";
+    // 「你」的标注要在这里补：renderWait() 渲染时身份可能还没解析出来
+    const sub = d.querySelector(".who i");
+    if (sub && Trial.me != null && p.player_id === Trial.me) {
+      const base = p.h || "";
+      if (!sub.textContent.startsWith("你 ")) {
+        sub.textContent = base ? "你 · " + base : "你";
+      }
+    }
     if (p.here) {
       const r = d.querySelector(".poke");
       if (r) {

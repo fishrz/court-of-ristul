@@ -1134,14 +1134,19 @@ function renderWait(){
   SEATS.forEach((p,i)=>{
     const d=document.createElement('div');
     d.className='seat'+(p.here?' here':''); d.dataset.i=i;
+    // 「你」按 player_id 判定，不能用座位序号硬编码
+    const isMe = window.Trial && window.Trial.me != null && p.player_id === window.Trial.me;
+    const sub = isMe ? '你 · ' + (p.h||'') : (p.h||'');
     d.innerHTML=`<div class="pfp">${p.here?'&#10003;':'&#183;'}</div>
-      <div class="who"><b>${p.n}</b><i>${p.h}</i></div>
+      <div class="who"><b>${p.n}</b><i>${sub}</i></div>
       ${p.here?'<span class="st">已到庭</span>'
               :'<span class="poke" onclick="poke(this,'+i+')">催 他</span>'}`;
     el.appendChild(d);
   });
   updateWaitCount();
-  // 队友陆续进场
+  // 队友陆续进场 —— 仅离线演示模式。接了真后端时到庭只能由服务端 attend 广播点亮，
+  // 否则一个人进候审室会看到全员自动就位（原型期遗留 bug）。
+  if(window.Trial && !window.Trial.simulated) return;
   SEATS.forEach((p,i)=>{
     if(p.here||!p.d) return;
     waitTimers.push(setTimeout(()=>arrive(i), p.d));
@@ -1160,6 +1165,9 @@ function arrive(i){
 }
 function poke(el,i){
   el.textContent='已催'; el.classList.add('sent'); el.onclick=null;
+  // 真实模式下"催他"只是标记已催——人到没到只认服务端 attend 广播，
+  // 不能靠前端定时器伪造对方到庭。
+  if(window.Trial && !window.Trial.simulated) return;
   waitTimers.push(setTimeout(()=>arrive(i), 900));
 }
 function updateWaitCount(){
