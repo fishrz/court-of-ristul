@@ -46,6 +46,30 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
 .crest h1{font-size:19px;letter-spacing:.42em;font-weight:600;color:var(--gold);text-indent:.42em}
 .crest .en{font-size:9.5px;letter-spacing:.34em;color:var(--bone-dim);text-transform:uppercase;margin-top:5px;text-indent:.34em}
 
+/* ── 右上角本人入口：印章式圆章，未登记时是空缺的问号 ── */
+.meBtn{position:absolute;right:16px;top:24px;width:34px;height:34px;border-radius:50%;
+  border:1px solid var(--line);background:rgba(0,0,0,.3);cursor:pointer;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;transition:border-color .2s}
+.meBtn:active{border-color:var(--gold)}
+.meBtn img{width:100%;height:100%;object-fit:cover;display:block}
+.meBtn span{font-size:13px;font-weight:600;color:var(--bone-dim);letter-spacing:0}
+.meBtn.anon{border-style:dashed}
+.meBtn.anon span{color:var(--ember)}
+
+/* ── 本人卷宗 ── */
+.idcard{margin:16px;padding:20px;border:1px solid var(--line);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(217,164,65,.09),rgba(18,12,8,.9));text-align:center}
+.idcard .ava{width:66px;height:66px;border-radius:50%;margin:0 auto 12px;display:block;
+  border:1px solid var(--gold);object-fit:cover;background:rgba(0,0,0,.35)}
+.idcard .nm{font-size:19px;font-weight:600;color:var(--gold);letter-spacing:.06em}
+.idcard .rl{font-size:10px;letter-spacing:.3em;color:var(--bone-dim);text-transform:uppercase;margin-top:6px}
+.idrow{display:flex;justify-content:space-between;align-items:center;padding:13px 2px;
+  border-bottom:1px solid var(--line);font-size:12.5px}
+.idrow:last-child{border-bottom:none}
+.idrow .k{color:var(--bone-dim);letter-spacing:.1em}
+.idrow .v{color:var(--bone);letter-spacing:.04em}
+.idnote{margin:14px 16px 0;font-size:11px;line-height:1.75;color:var(--bone-dim);letter-spacing:.04em}
+
 /* ── verdict banner ── */
 .banner{margin:16px 16px 0;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r);
   background:linear-gradient(160deg,rgba(142,31,24,.28),rgba(18,12,8,.9));position:relative;overflow:hidden}
@@ -361,6 +385,10 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
     </svg>
     <h1>瑞斯图尔法庭</h1>
     <div class="en">Court of Ristul</div>
+    <div class="meBtn" id="meBtn" onclick="go('P')" title="本人卷宗">
+      <img id="meBtnImg" alt="" style="display:none">
+      <span id="meBtnTxt">?</span>
+    </div>
   </div>
 
   <div class="summons" id="summons" onclick="go('W')">
@@ -411,6 +439,16 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
     </div>
   </div>
   <div class="sec" style="margin-top:14px"><div id="archive"></div></div>
+</section>
+
+<!-- ══════════ P. 本人卷宗 ══════════ -->
+<section class="screen" id="sP" data-screen-label="本人卷宗">
+  <div class="crest">
+    <h1 style="font-size:15px">本 人 卷 宗</h1><div class="en">Your Record</div>
+    <div onclick="go(0)" style="position:absolute;left:14px;top:26px;font-size:19px;
+      color:var(--bone-dim);cursor:pointer;padding:4px 10px;line-height:1">&lsaquo;</div>
+  </div>
+  <div id="meBody"></div>
 </section>
 
 <!-- ══════════ 1. 速报 ══════════ -->
@@ -1148,6 +1186,81 @@ function renderHomeFeed(){
 }
 
 let curFilter = 'all';
+/* ── 本人卷宗：现在只回答「我是谁」这一个问题 ──
+   设置项等有真东西可设了再加，先放假开关是在骗自己。
+   身份来源：localStorage 存 steam_id → /api/players 换成库内 player_id。 */
+function meInfo(){
+  let sid = null;
+  try { sid = localStorage.getItem('cor.steam_id'); } catch(e){}
+  const list = (window.Trial && Trial.players && Trial.players.length)
+    ? Trial.players : (window.__PLAYERS || []);
+  const hit = sid ? list.find(p=>String(p.steam_id)===String(sid)) : null;
+  return { sid, player: hit || null };
+}
+
+function renderMeBtn(){
+  const btn = document.getElementById('meBtn');
+  if(!btn) return;
+  const { player } = meInfo();
+  const img = document.getElementById('meBtnImg');
+  const txt = document.getElementById('meBtnTxt');
+  if(player && player.avatar_url){
+    img.src = player.avatar_url; img.style.display='';
+    txt.style.display='none'; btn.classList.remove('anon');
+  } else if(player){
+    img.style.display='none'; txt.style.display='';
+    txt.textContent = (player.display_name||'?').trim().charAt(0).toUpperCase();
+    btn.classList.remove('anon');
+  } else {
+    img.style.display='none'; txt.style.display='';
+    txt.textContent = '?'; btn.classList.add('anon');   // 虚线圈=尚未登记
+  }
+}
+
+function renderMe(){
+  const el = document.getElementById('meBody');
+  if(!el) return;
+  const { sid, player } = meInfo();
+
+  if(!player){
+    el.innerHTML =
+      '<div class="idcard"><div class="nm" style="color:var(--ember)">身份未登记</div>' +
+      '<div class="rl">Unidentified</div></div>' +
+      '<div class="idnote">本机还没有绑定 Steam 身份，无法到庭、举证或投票。' +
+      (sid ? '<br>本机存有 Steam ID <span class="mono">'+sid+'</span>，但服务器上查无此人——可能是登记未完成。' : '') +
+      '</div>' +
+      '<div class="sec" style="margin-top:16px"><a href="/join" ' +
+      'style="display:block;text-align:center;padding:14px;border:1px solid var(--gold);' +
+      'border-radius:var(--r);color:var(--gold);font-size:13px;letter-spacing:.2em">前 往 登 记</a></div>';
+    return;
+  }
+
+  // 我参与的案子：CASES 里 me 标记的是「我被判有罪」的局
+  const judged = CASES.filter(c=>c.me).length;
+
+  const rows = [
+    ['游戏 ID',  player.display_name],
+    ['Steam ID', '<span class="mono">'+player.steam_id+'</span>'],
+    ['庭内编号',  '<span class="mono">#'+player.id+'</span>'],
+    ['监控状态',  player.is_active
+        ? '<span style="color:#7ede9a">已启用 · 自动收案</span>'
+        : '<span style="color:var(--bone-dim)">已停用</span>'],
+    ['背负案底',  judged ? '<span style="color:#ff6b52">'+judged+' 次大÷</span>' : '暂无'],
+  ];
+
+  el.innerHTML =
+    '<div class="idcard">' +
+      (player.avatar_url ? '<img class="ava" src="'+player.avatar_url+'" alt="">' : '') +
+      '<div class="nm">'+player.display_name+'</div>' +
+      '<div class="rl">Registered Defendant</div>' +
+    '</div>' +
+    '<div class="sec" style="margin-top:16px">' +
+      rows.map(r=>'<div class="idrow"><span class="k">'+r[0]+'</span><span class="v">'+r[1]+'</span></div>').join('') +
+    '</div>' +
+    '<div class="idnote">比赛记录、判决与案底都存在服务器上，本机只记住「你是谁」。' +
+    '换手机或清除浏览器数据后重新登记同一个 Steam ID 即可找回，不会丢失案底。</div>';
+}
+
 function renderArchive(){
   let list = CASES.filter(c=>{
     if(curFilter==='all') return true;
@@ -1193,7 +1306,8 @@ function go(n){
   if(n!=='W') waitTimers.forEach(clearTimeout);
   if(n!==4) clearInterval(timerId);
 
-  if(n===0) renderHomeFeed();
+  if(n===0){ renderHomeFeed(); renderMeBtn(); }
+  if(n==='P') renderMe();
   if(n==='W') renderWait();
   if(n==='L') renderArchive();
   if(n===2) runLoading();
@@ -1568,6 +1682,12 @@ go(0);
   renderArchive();
   renderSummons();
   renderStats(await loadStats());
+  // 头像章要自己拉一次玩家表：trial-bridge 的 Trial.players 要等到开庭才填，
+  // 而门厅一进来就得知道「我是谁」。
+  try {
+    window.__PLAYERS = await (await fetch(API + '/players')).json();
+  } catch(e){ window.__PLAYERS = []; }
+  renderMeBtn();
   // 预载最近一件待开庭/最新案卷的详情，进单案页时已有真实证据
   const first = CASES[0];
   if(first) await loadMatch(first.id);
