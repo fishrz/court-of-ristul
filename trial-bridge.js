@@ -199,6 +199,16 @@ function handleLiveEvent(ev) {
       renderVerdict(ev);
       go(5);
       break;
+    // 书记官（DeepSeek）比开庭慢 ~15s，判词后到。此时多半还在举证/投票页，
+    // 先把结果记下来；真正上屏由 renderVerdict / renderVerdictBody 负责。
+    case "ai_opinion":
+      Trial.aiOpinion = {
+        player_id: ev.ai_verdict_player_id,
+        reason: ev.reason,
+        advice: ev.advice,
+        overruled: ev.overruled,
+      };
+      break;
   }
 }
 

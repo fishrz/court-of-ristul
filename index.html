@@ -1386,16 +1386,28 @@ function renderVerdictBody(nom){
   const ev = (EVIDENCE || []).filter(e => (e.who||'').split(' · ')[0] === nom.nm)
     .sort((a,b)=>(b.severity||0)-(a.severity||0));
   const top = ev[0];
-  set('verdictQuip', top && top.quip ? top.quip : '「数据已呈堂，诸位自行体会。」');
+
+  // 书记官（DeepSeek）的判词优先于引擎的预写模板——但只在它判的是同一个人时。
+  // 判了别人还套用其判词，等于张冠李戴。
+  const ai = (typeof Trial !== 'undefined' && Trial) ? Trial.aiOpinion : null;
+  const aiHit = ai && nom.player_id != null && ai.player_id === nom.player_id;
+
+  set('verdictQuip', aiHit ? ai.reason
+    : (top && top.quip ? top.quip : '「数据已呈堂，诸位自行体会。」'));
   set('verdictFact', top && top.fact ? top.fact : (nom.charge || '—'));
   set('verdictQuip2', (nom.chips||[]).map(c=>Array.isArray(c)?c[0]:c).join(' · '));
 
-  // 建议：目前引擎不产出个性化建议，与其编一段假的，不如给出可核对的依据
+  // 建议：有书记官就用它的可执行建议，否则退回可核对的次要事实，
+  // 而不是编一段「加强意识」式的空话。
   const advice = document.getElementById('adviceText');
   if(advice){
-    advice.textContent = ev.length > 1
-      ? `本庭另记录 ${ev.length - 1} 项次要事实：` + ev.slice(1).map(e=>e.fact).join('；')
-      : '本庭无进一步教育意见——数据已经说得够清楚了。';
+    if(aiHit && ai.advice){
+      advice.textContent = ai.advice;
+    } else {
+      advice.textContent = ev.length > 1
+        ? `本庭另记录 ${ev.length - 1} 项次要事实：` + ev.slice(1).map(e=>e.fact).join('；')
+        : '本庭无进一步教育意见——数据已经说得够清楚了。';
+    }
   }
 }
 window.renderVerdictBody = renderVerdictBody;
