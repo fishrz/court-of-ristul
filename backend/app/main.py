@@ -31,14 +31,18 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(title="瑞斯图尔法庭", lifespan=lifespan)
-# 开发期前端跑在静态服务（:4311），后端在 :8000，必须放行跨域。
-# 生产同源部署时这条不生效也无害。
+# 生产同源部署（Caddy 反代）其实不触发 CORS；这里的白名单是为了
+# 万一前端被单独托管到别的域时仍可用。开发期前端跑在静态服务，
+# 端口和后端 :8010 不同，必须放行跨域。
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://127.0.0.1:4311",
-        "http://localhost:4311",
+        "https://ristul.icu",
+        "https://www.ristul.icu",
     ],
+    # 本地开发：静态预览端口经常换，用正则放行任意回环端口，
+    # 免得每换一个端口就要改这里。生产域名仍走上面的白名单。
+    allow_origin_regex=r"http://(127\.0\.0\.1|localhost)(:\d+)?",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
