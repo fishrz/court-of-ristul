@@ -199,6 +199,11 @@ async def start_vote(trial_id: int, session: Session) -> dict[str, Any]:
     trial = await _get_trial(session, trial_id)
     if trial.status == "closed":
         raise HTTPException(status_code=409, detail="trial is closed")
+    if trial.status == "voting" and trial.vote_deadline is not None:
+        return {
+            "type": "vote_start",
+            "deadline": _aware(trial.vote_deadline).isoformat().replace("+00:00", "Z"),
+        }
     if not trial.attendances:
         raise HTTPException(status_code=409, detail="no players attended")
     started = _now()
@@ -247,7 +252,21 @@ async def cast_vote(
         trial.votes.append(vote)
     else:
         vote.nominee_id = body.nominee_id
-    await session.commit()
+    try:
+        await session.commit()
+    except IntegrityError:
+        await session.rollback()
+        vote = await session.scalar(
+            select(Vote).where(
+                Vote.trial_id == trial_id,
+                Vote.voter_id == body.voter_id,
+            )
+        )
+        if vote is None:
+            raise
+        vote.nominee_id = body.nominee_id
+        await session.commit()
+    trial = await _get_trial(session, trial_id)
     tally = _tally(trial.votes)
     event = {
         "type": "vote",

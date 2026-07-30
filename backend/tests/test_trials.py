@@ -6,11 +6,13 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from app.db import Base, get_session
 from app.models import Match, MatchPlayer, Player, Trial, Vote
+from app.routers import trials
 from app.routers.trials import router as trials_router
 
 
@@ -140,6 +142,59 @@ def test_repeat_vote_updates_nominee_without_increasing_tally(trial_app) -> None
             return int(count or 0), vote.nominee_id
 
     assert asyncio.run(stored_vote()) == (1, player_ids[2])
+
+
+def test_concurrent_repeat_vote_is_idempotent(trial_app, monkeypatch) -> None:
+    client, factory = trial_app
+    trial_id, player_ids = _open_and_attend(client, factory)
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+
+    original_get_trial = trials._get_trial
+    both_loaded = asyncio.Event()
+    loaded = 0
+
+    async def synchronize_vote_loads(session, requested_trial_id):
+        nonlocal loaded
+        trial = await original_get_trial(session, requested_trial_id)
+        loaded += 1
+        if loaded == 2:
+            both_loaded.set()
+        await both_loaded.wait()
+        return trial
+
+    monkeypatch.setattr(trials, "_get_trial", synchronize_vote_loads)
+
+    async def vote_twice() -> list[int]:
+        async with AsyncClient(
+            transport=ASGITransport(app=client.app), base_url="http://test"
+        ) as async_client:
+            responses = await asyncio.gather(
+                async_client.post(
+                    f"/api/trials/{trial_id}/vote",
+                    json={"voter_id": player_ids[0], "nominee_id": player_ids[0]},
+                ),
+                async_client.post(
+                    f"/api/trials/{trial_id}/vote",
+                    json={"voter_id": player_ids[0], "nominee_id": player_ids[2]},
+                ),
+            )
+            return [response.status_code for response in responses]
+
+    assert asyncio.run(vote_twice()) == [200, 200]
+    monkeypatch.setattr(trials, "_get_trial", original_get_trial)
+    state = client.get(f"/api/trials/{trial_id}").json()
+    assert sum(state["tally"].values()) == 1
+
+
+def test_start_vote_is_idempotent_and_preserves_deadline(trial_app) -> None:
+    client, factory = trial_app
+    trial_id, _ = _open_and_attend(client, factory)
+
+    first = client.post(f"/api/trials/{trial_id}/start-vote")
+    second = client.post(f"/api/trials/{trial_id}/start-vote")
+
+    assert first.status_code == second.status_code == 200
+    assert second.json()["deadline"] == first.json()["deadline"]
 
 
 def test_tie_uses_precomputed_ai_verdict_and_reports_disagreement(trial_app) -> None:
