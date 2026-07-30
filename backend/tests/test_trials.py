@@ -197,6 +197,35 @@ def test_start_vote_is_idempotent_and_preserves_deadline(trial_app) -> None:
     assert second.json()["deadline"] == first.json()["deadline"]
 
 
+def test_start_vote_rejects_before_all_players_attend(trial_app, monkeypatch) -> None:
+    client, factory = trial_app
+    trial_id, _ = _open_and_attend(client, factory, attendee_count=1)
+    settlements = []
+    broadcasts = []
+
+    async def record_settlement(requested_trial_id, deadline):
+        settlements.append((requested_trial_id, deadline))
+
+    async def record_broadcast(requested_trial_id, event):
+        broadcasts.append((requested_trial_id, event))
+
+    monkeypatch.setattr(trials, "_settle_at_deadline", record_settlement)
+    monkeypatch.setattr(trials.manager, "broadcast", record_broadcast)
+
+    response = client.post(f"/api/trials/{trial_id}/start-vote")
+
+    async def persisted_state() -> tuple[str, datetime | None]:
+        async with factory() as session:
+            trial = await session.get(Trial, trial_id)
+            return trial.status, trial.vote_deadline
+
+    persisted_state_value = asyncio.run(persisted_state())
+    assert response.status_code == 409
+    assert persisted_state_value == ("waiting", None)
+    assert settlements == []
+    assert broadcasts == []
+
+
 def test_concurrent_start_vote_claims_once(trial_app, monkeypatch) -> None:
     client, factory = trial_app
     trial_id, _ = _open_and_attend(client, factory)
@@ -258,11 +287,17 @@ def test_concurrent_start_vote_claims_once(trial_app, monkeypatch) -> None:
 
 def test_tie_uses_precomputed_ai_verdict_and_reports_disagreement(trial_app) -> None:
     client, factory = trial_app
-    trial_id, player_ids = _open_and_attend(client, factory, attendee_count=4)
+    trial_id, player_ids = _open_and_attend(client, factory)
     client.post(f"/api/trials/{trial_id}/start-vote")
 
-    nominees = [player_ids[0], player_ids[0], player_ids[2], player_ids[2]]
-    for voter_id, nominee_id in zip(player_ids[:4], nominees, strict=True):
+    nominees = [
+        player_ids[0],
+        player_ids[0],
+        player_ids[2],
+        player_ids[2],
+        player_ids[4],
+    ]
+    for voter_id, nominee_id in zip(player_ids, nominees, strict=True):
         response = client.post(
             f"/api/trials/{trial_id}/vote",
             json={"voter_id": voter_id, "nominee_id": nominee_id},
@@ -273,7 +308,7 @@ def test_tie_uses_precomputed_ai_verdict_and_reports_disagreement(trial_app) -> 
     assert state["status"] == "closed"
     assert state["verdict_player_id"] == state["ai_verdict_player_id"] == player_ids[1]
     assert state["ai_agrees"] is True
-    assert sum(state["tally"].values()) <= 4
+    assert sum(state["tally"].values()) == 5
 
 
 def test_player_verdict_and_ai_verdict_remain_independent(trial_app) -> None:

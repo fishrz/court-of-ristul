@@ -204,13 +204,15 @@ async def start_vote(trial_id: int, session: Session) -> dict[str, Any]:
             "type": "vote_start",
             "deadline": _aware(trial.vote_deadline).isoformat().replace("+00:00", "Z"),
         }
+    if trial.status != "evidence":
+        raise HTTPException(status_code=409, detail="voting is not ready")
     if not trial.attendances:
         raise HTTPException(status_code=409, detail="no players attended")
     started = _now()
     deadline = started + timedelta(seconds=VOTE_SECONDS)
     claimed = await session.execute(
         update(Trial)
-        .where(Trial.id == trial_id, Trial.status == trial.status)
+        .where(Trial.id == trial_id, Trial.status == "evidence")
         .values(
             status="voting",
             vote_started_at=started,
