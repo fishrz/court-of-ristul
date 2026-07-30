@@ -57,10 +57,12 @@ done
 chown -R "$APP_USER:$APP_USER" "$APP_DIR/web"
 ls -la "$APP_DIR/web"
 
-log "5/7 种子数据（仅首次，已有库则跳过）"
-if [ ! -f "$APP_DIR/backend/court.db" ]; then
-	sudo -u "$APP_USER" .venv/bin/python -m scripts.seed_dev || \
-		echo "  种子脚本失败，跳过（可稍后手动执行）"
+log "5/7 清理占位玩家（队友走 /join 自助登记真实 Steam 账号）"
+# 不再自动 seed：占位玩家 steam_id 是编的，轮询器抓不到他们的比赛，
+# 只会让投票和 AI 判决在一堆抓不到数据的假人之间打转。
+if [ -f "$APP_DIR/backend/court.db" ]; then
+	sudo -u "$APP_USER" .venv/bin/python -m scripts.purge_seed_players --apply || \
+		echo "  清理脚本失败，跳过"
 fi
 
 log "6/7 systemd 后端服务"
