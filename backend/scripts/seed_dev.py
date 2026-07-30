@@ -13,6 +13,7 @@
 
 import asyncio
 import json
+import os
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
@@ -28,6 +29,17 @@ FIXTURE = BACKEND / "tests/fixtures/match_8917764448.json"
 
 
 async def main() -> None:
+    # 这个脚本会灌入 700000001+ 号段的占位玩家和 fixture 比赛。
+    # 生产库一旦被它污染，队友走 /join 登记时会和假人撞名，
+    # 而假人没有真实 steam_id，轮询器抓不到他们的比赛。
+    # 要在生产跑必须显式声明意图。
+    if os.environ.get("COR_ALLOW_SEED") != "1":
+        print(
+            "拒绝执行：seed_dev 会写入占位玩家，仅供本地开发。\n"
+            "确实需要请设置 COR_ALLOW_SEED=1。\n"
+            "生产环境请让队友访问 /join 自助登记真实 Steam 账号。"
+        )
+        return
     data = json.loads(FIXTURE.read_text(encoding="utf-8"))
     team = data["players"]
     async with engine.begin() as connection:
