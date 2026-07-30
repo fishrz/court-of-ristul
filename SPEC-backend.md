@@ -51,6 +51,8 @@ Trial           # 开庭（一局一次，唯一约束）
   evidence_json, nominees_json,     # 引擎产出
   vote_started_at, vote_deadline,
   verdict_player_id, verdict_json, appeal_text,
+  ai_verdict_player_id,             # AI 独立判决（建庭时算好）
+  ai_verdict_json,                  # {score, evidence[], reasoning}
   created_at, closed_at
 
 Attendance      # 候审室到场
@@ -101,7 +103,7 @@ WS /ws/trials/{trial_id}
 {"type":"stage",       "stage":"evidence"}
 {"type":"vote_start",  "deadline":"2026-07-30T10:00:00Z"}
 {"type":"vote",        "voter_id":2, "nominee_id":5, "tally":{"5":2,"7":1}}
-{"type":"verdict",     "guilty_player_id":5, "tally":{...}, "verdict":"..."}
+{"type":"verdict",     "guilty_player_id":5, "tally":{...}, "ai_verdict_player_id":7, "ai_agrees":false, "verdict":"..."}
 {"type":"appeal",      "text":"..."}
 ```
 
@@ -162,8 +164,18 @@ FastAPI `lifespan` 里起 asyncio 后台循环：
 - 实名，可投自己
 - 60 秒倒计时，服务端权威（`vote_deadline` 落库，不信客户端）
 - 超时未投 = 弃权
-- **平票由引擎评分最高者胜出**（AI 的决定性一票）
-- 总票数必须 ≤ 到场人数，前端展示时总和自洽
+- **总票数必须 ≤ 到场人数**，前端展示时总和自洽
+
+## AI 独立判决
+
+AI 的判断**不只是平票裁决，它本身是要展示的内容**。
+用户原话：「同时投票完最好有个 AI 选择，这样我们也可以看看 AI 评判的大÷，也保留平票情况下 AI 判决」
+
+- **建庭时**（POST /open）就用引擎算出 `ai_verdict_player_id` 并落库，不依赖投票
+- `ai_verdict_json` 存完整证据链和评分，前端要能展示「AI 为什么这么判」
+- **结算时**玩家票选和 AI 判决**分别返回**，前端同时展示：「群众判了 X，AI 判了 Y」
+- 两者一致/不一致本身就是整活点
+- **平票时用 `ai_verdict_player_id` 破局**（用建庭时算好的那个，不重算）
 
 ## 验收
 
