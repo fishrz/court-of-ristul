@@ -25,7 +25,7 @@ open http://localhost:8000/docs         # Swagger UI
 open http://localhost:8000/api/players  # 白名单（初始为空）
 
 # 填 Steam ID 的页面
-open http://localhost:8000/join
+open http://localhost:8010/join
 ```
 
 > 数据库文件 `court.db` 在首次启动时自动创建，位置由 `DATABASE_URL` 决定（默认当前目录）。

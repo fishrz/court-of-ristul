@@ -90,6 +90,10 @@ class MatchListItem(ORMModel):
     we_won: bool | None
     parse_status: ParseStatus
     created_at: datetime
+    # 案卷库卡片自解释所需 —— 没有这些前端得为每张卡再打一次详情请求
+    heroes: list[str] = []
+    verdict_name: str | None = None
+    verdict_note: str | None = None
 
 
 class TrialRead(ORMModel):

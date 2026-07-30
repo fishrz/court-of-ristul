@@ -151,3 +151,56 @@ async def test_monthly_stats_are_self_consistent(
             {"player_id": guilty_b.id, "display_name": "B", "count": 1},
         ],
     }
+
+
+@pytest.mark.asyncio
+async def test_archive_item_carries_heroes_and_verdict(
+    api_client: AsyncClient, session: AsyncSession
+) -> None:
+    """案卷库卡片必须自解释：英雄阵容 + 判决结果，否则前端要为每张卡再打一次详情。"""
+    case = Match(
+        match_id=99,
+        started_at=datetime(2026, 7, 3, tzinfo=UTC),
+        we_won=False,
+        parse_status="parsed",
+    )
+    session.add(case)
+    await session.flush()
+
+    player = Player(steam_id=700000009, display_name="Perennis")
+    session.add(player)
+    await session.flush()
+
+    session.add_all(
+        [
+            MatchPlayer(
+                match_id=case.id,
+                player_id=player.id,
+                hero_id=26,
+                hero_name="莱恩",
+                is_our_team=True,
+            ),
+            # 敌方英雄不应出现在我方阵容里
+            MatchPlayer(
+                match_id=case.id, hero_id=1, hero_name="敌方英雄", is_our_team=False
+            ),
+        ]
+    )
+    session.add(
+        Trial(
+            match_id=case.id,
+            status="closed",
+            verdict_player_id=player.id,
+            verdict_json=json.dumps({"evidence": [{"tag": "视野真空"}]}),
+        )
+    )
+    await session.commit()
+
+    payload = (await api_client.get("/api/matches")).json()
+    item = next(row for row in payload if row["match_id"] == 99)
+
+    assert item["heroes"] == ["莱恩"]
+    assert item["verdict_name"] == "Perennis"
+    assert item["verdict_note"] == "视野真空"
+    # 列表绝不能带 OpenDota 原始包（每场可达数百 KB）
+    assert "raw_json" not in item

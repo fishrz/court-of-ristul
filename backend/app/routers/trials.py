@@ -89,10 +89,22 @@ def _ai_verdict(case: Match) -> tuple[int, str]:
         for item in case.players
         if item.is_our_team and item.player_id is not None and item.player is not None
     }
+    # 归因引擎输出的 player.id 口径不唯一：轮询入库时是 OpenDota account_id，
+    # 而以归一化 fixture 直接喂 engine.accuse 时只是 1..5 的序号。
+    # 只按 steam_id 查会整局匹配不上，导致本可开庭的比赛报 409。
+    # 因此再建一份按我方出场顺序的序号映射作为回退。
+    our_players = [
+        item for item in case.players if item.is_our_team and item.player_id is not None
+    ]
+    known_by_ordinal = {
+        ordinal: item.player_id for ordinal, item in enumerate(our_players, start=1)
+    }
     eligible = []
     for suspect in suspects:
         external_id = suspect.get("player", {}).get("id")
         player_id = known_by_steam_id.get(external_id)
+        if player_id is None:
+            player_id = known_by_ordinal.get(external_id)
         if player_id is not None:
             eligible.append((suspect, player_id))
     if not eligible:

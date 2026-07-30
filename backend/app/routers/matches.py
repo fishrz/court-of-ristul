@@ -21,7 +21,7 @@ Session = Annotated[AsyncSession, Depends(get_session)]
 async def list_matches(
     session: Session,
     filter: Literal["win", "lose", "pending"] | None = None,
-) -> list[Match]:
+) -> list[MatchListItem]:
     statement = select(Match)
     if filter == "win":
         statement = statement.where(Match.we_won.is_(True))
@@ -30,7 +30,47 @@ async def list_matches(
     elif filter == "pending":
         statement = statement.where(Match.parse_status.in_(["pending", "parsing"]))
     statement = statement.order_by(Match.started_at.desc(), Match.created_at.desc())
-    return list(await session.scalars(statement))
+    statement = statement.options(selectinload(Match.players))
+    cases = list(await session.scalars(statement))
+
+    # 判决结果：一局只能开庭一次，所以 match_id -> trial 是一对一
+    trials = {
+        trial.match_id: trial
+        for trial in await session.scalars(
+            select(Trial).where(Trial.match_id.in_([case.id for case in cases]))
+        )
+    } if cases else {}
+    names = {
+        player.id: player.display_name
+        for player in await session.scalars(select(Player))
+    }
+
+    items = []
+    for case in cases:
+        item = MatchListItem.model_validate(case)
+        item.heroes = [
+            player.hero_name
+            for player in case.players
+            if player.is_our_team and player.hero_name
+        ]
+        trial = trials.get(case.id)
+        if trial is not None and trial.verdict_player_id is not None:
+            item.verdict_name = names.get(trial.verdict_player_id)
+            item.verdict_note = _verdict_note(trial)
+        items.append(item)
+    return items
+
+
+def _verdict_note(trial: Trial) -> str | None:
+    """判决摘要：取首条罪证的 tag，给案卷卡当一句话说明。"""
+    payload = _json_value(trial.verdict_json)
+    if isinstance(payload, dict):
+        evidence = payload.get("evidence")
+        if isinstance(evidence, list) and evidence:
+            first = evidence[0]
+            if isinstance(first, dict):
+                return first.get("tag") or first.get("fact")
+    return None
 
 
 @router.get("/api/matches/{match_id}")
