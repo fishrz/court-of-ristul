@@ -12,6 +12,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app import ai
 from app.db import SessionLocal, get_session
 from app.models import Attendance, Match, MatchPlayer, Trial, Vote
 from app.schemas import AppealCreate, TrialRead
@@ -175,7 +176,114 @@ async def open_trial(match_id: int, session: Session) -> dict[str, Any]:
         trial = await _get_trial(session, existing_id)
         return _trial_payload(trial, _tally(trial.votes))
     trial = await _get_trial(session, trial.id)
+    # LLM 判词要 ~13s，绝不能挡住开庭响应（五个人同时点开庭）。
+    # 丢到后台跑，完成后走 WebSocket 广播覆盖；投票期 60s，来得及。
+    _spawn_ai_opinion(trial.id, case)
     return _trial_payload(trial, {})
+
+
+# 持有后台任务的强引用，否则 asyncio 可能在任务跑完前把它回收掉。
+_AI_TASKS: set[asyncio.Task[Any]] = set()
+
+
+def _spawn_ai_opinion(trial_id: int, case: Match) -> None:
+    # 在这里把 ORM 对象拍平成纯数据再交给后台任务：session 会随请求关闭，
+    # 后台协程里再碰 case.players 会触发已关闭 session 的懒加载而炸掉。
+    #
+    # 只喂 player_id 非空的队友：未登记的人无法被投票，也无法作为
+    # verdict_player_id 落库。若放进候选，模型很可能判中一个没登记的人
+    # （实测就judged中了未登记的黑刺），写回后 ai_verdict_player_id 变成
+    # None，宣判页直接失去被告。规则引擎的 _ai_verdict 同样只认可归属的人。
+    ours = [
+        item
+        for item in case.players
+        if item.is_our_team and item.player_id is not None
+    ]
+    if not ours:
+        return
+    players = []
+    for item in ours:
+        metrics = _json(item.metrics_json) or {}
+        players.append(
+            {
+                "player_id": item.player_id,
+                "name": (item.player.display_name if item.player else None) or "玩家",
+                "hero": item.hero_name,
+                "role": item.lane_role,
+                "kills": item.kills,
+                "deaths": item.deaths,
+                "assists": item.assists,
+                "gpm": item.gpm,
+                "teamfight": item.teamfight_participation,
+                "damage": item.damage_share,
+                "lh10": item.lh_at_10,
+                "obs": metrics.get("obs_placed"),
+            }
+        )
+    duration = f"{case.duration // 60}:{case.duration % 60:02d}" if case.duration else "—"
+    task = asyncio.create_task(
+        _run_ai_opinion(
+            trial_id=trial_id,
+            we_won=bool(case.we_won),
+            duration=duration,
+            players=players,
+        )
+    )
+    _AI_TASKS.add(task)
+    task.add_done_callback(_AI_TASKS.discard)
+
+
+async def _run_ai_opinion(
+    *, trial_id: int, we_won: bool, duration: str, players: list[dict[str, Any]]
+) -> None:
+    async with SessionLocal() as session:
+        trial = await session.get(Trial, trial_id)
+        if trial is None:
+            return
+        # 规则引擎选中的人在我方名单里的序号，作为给模型的参考
+        rule_pick = next(
+            (
+                i
+                for i, p in enumerate(players, start=1)
+                if p["player_id"] == trial.ai_verdict_player_id
+            ),
+            None,
+        )
+        result = await ai.judge(
+            we_won=we_won, duration=duration, players=players, rule_pick=rule_pick
+        )
+        if result is None:
+            return  # 静默降级：规则引擎判词已经在库里了
+
+        chosen = players[result["guilty"] - 1]
+        # 防御：候选已过滤过 player_id，但判词写回前再确认一次。
+        # ai_verdict_player_id 一旦为 None，宣判页就没有被告了。
+        if chosen["player_id"] is None:
+            return
+        existing = _json(trial.ai_verdict_json) or {}
+        # 保留规则引擎的 evidence/score，只换判词，并如实记录是否分歧。
+        # 分歧本身是产品看点，不要抹平成一致。
+        existing.update(
+            reasoning=result["reason"],
+            advice=result.get("advice") or "",
+            source="deepseek",
+            rule_pick_player_id=trial.ai_verdict_player_id,
+            overruled=chosen["player_id"] != trial.ai_verdict_player_id,
+        )
+        trial.ai_verdict_player_id = chosen["player_id"]
+        trial.ai_verdict_json = json.dumps(existing, ensure_ascii=False)
+        await session.commit()
+
+        await manager.broadcast(
+            trial_id,
+            {
+                "type": "ai_opinion",
+                "ai_verdict_player_id": chosen["player_id"],
+                "reason": result["reason"],
+                "advice": result.get("advice") or "",
+                "overruled": existing["overruled"],
+            },
+        )
 
 
 @router.get("/api/trials/{trial_id}")
@@ -367,8 +475,8 @@ async def _settle(session: AsyncSession, trial: Trial) -> dict[str, Any] | None:
             if len(leaders) > 1
             else leaders[0]
         )
-    ai = _json(trial.ai_verdict_json) or {}
-    verdict_text = ai.get("reasoning") or "投票结束"
+    ai_data = _json(trial.ai_verdict_json) or {}
+    verdict_text = ai_data.get("reasoning") or "投票结束"
     trial.status = "closed"
     trial.verdict_player_id = guilty_player_id
     trial.verdict_json = json.dumps(
@@ -384,6 +492,8 @@ async def _settle(session: AsyncSession, trial: Trial) -> dict[str, Any] | None:
         "ai_verdict_player_id": trial.ai_verdict_player_id,
         "ai_agrees": guilty_player_id == trial.ai_verdict_player_id,
         "verdict": verdict_text,
+        # 书记官的改进建议：只有 LLM 会产出，规则引擎没有，前端自行判空
+        "advice": ai_data.get("advice") or "",
     }
     await manager.broadcast(trial.id, event)
     return event
