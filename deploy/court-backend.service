@@ -1,0 +1,20 @@
+[Unit]
+Description=Court of Ristul backend (FastAPI)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/opt/court-of-ristul/backend
+Environment=PYTHONUNBUFFERED=1
+# WS 广播与投票倒计时都在进程内存里，必须单 worker。
+# 多 worker 会把客户端分到不同进程，广播互相看不见。
+ExecStart=/opt/court-of-ristul/backend/.venv/bin/uvicorn app.main:app \
+	--host 127.0.0.1 --port 8010 --workers 1 --proxy-headers \
+	--forwarded-allow-ips='127.0.0.1'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

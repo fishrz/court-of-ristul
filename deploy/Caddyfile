@@ -1,0 +1,33 @@
+ristul.icu, www.ristul.icu {
+	encode zstd gzip
+
+	# 后端 API
+	handle /api/* {
+		reverse_proxy 127.0.0.1:8010
+	}
+
+	# WebSocket 实时审判。Caddy 会自动透传 Upgrade/Connection，
+	# 但投票周期 + 25s 心跳需要足够长的读超时，否则代理会在静默期切断。
+	handle /ws/* {
+		reverse_proxy 127.0.0.1:8010 {
+			flush_interval -1
+		}
+	}
+
+	# Steam ID 登记页由后端提供（FileResponse）
+	handle /join {
+		reverse_proxy 127.0.0.1:8010
+	}
+
+	handle /health {
+		reverse_proxy 127.0.0.1:8010
+	}
+
+	# 其余全部是前端静态资源。只发布 web/ 目录，
+	# 避免把 backend/、.git/、corpus/ 之类的东西暴露到公网。
+	handle {
+		root * /opt/court-of-ristul/web
+		try_files {path} /index.html
+		file_server
+	}
+}

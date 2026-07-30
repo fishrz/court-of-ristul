@@ -38,6 +38,8 @@ app.add_middleware(
     allow_origins=[
         "http://127.0.0.1:4311",
         "http://localhost:4311",
+        "https://ristul.icu",
+        "https://www.ristul.icu",
     ],
     allow_credentials=True,
     allow_methods=["*"],
