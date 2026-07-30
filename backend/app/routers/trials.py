@@ -145,8 +145,14 @@ async def open_trial(match_id: int, session: Session) -> dict[str, Any]:
         raise HTTPException(status_code=404, detail="match not found")
     if case.parse_status != "parsed":
         raise HTTPException(status_code=409, detail="match is not parsed")
-    if await session.scalar(select(Trial.id).where(Trial.match_id == case.id)):
-        raise HTTPException(status_code=409, detail="trial already exists")
+    # 幂等：一局只有一场庭，五个人各自点"开庭"都应进同一场，
+    # 而不是让后到的人拿 409 然后各跑各的。
+    existing_id = await session.scalar(
+        select(Trial.id).where(Trial.match_id == case.id)
+    )
+    if existing_id:
+        trial = await _get_trial(session, existing_id)
+        return _trial_payload(trial, _tally(trial.votes))
 
     ai_player_id, ai_json = _ai_verdict(case)
     trial = Trial(
@@ -159,8 +165,15 @@ async def open_trial(match_id: int, session: Session) -> dict[str, Any]:
     try:
         await session.commit()
     except IntegrityError as error:
+        # 并发下另一个请求先建好了：同样返回既有那场
         await session.rollback()
-        raise HTTPException(status_code=409, detail="trial already exists") from error
+        existing_id = await session.scalar(
+            select(Trial.id).where(Trial.match_id == case.id)
+        )
+        if not existing_id:
+            raise HTTPException(status_code=409, detail="trial already exists") from error
+        trial = await _get_trial(session, existing_id)
+        return _trial_payload(trial, _tally(trial.votes))
     trial = await _get_trial(session, trial.id)
     return _trial_payload(trial, {})
 

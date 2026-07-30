@@ -100,7 +100,7 @@ def _open_and_attend(
     return trial_id, player_ids
 
 
-def test_open_persists_ai_verdict_and_duplicate_returns_409(trial_app) -> None:
+def test_open_persists_ai_verdict_and_duplicate_returns_same_trial(trial_app) -> None:
     client, factory = trial_app
     match_id, player_ids = asyncio.run(_seed_case(factory))
 
@@ -111,7 +111,9 @@ def test_open_persists_ai_verdict_and_duplicate_returns_409(trial_app) -> None:
     assert opened.json()["ai_verdict_player_id"] == player_ids[1]
     assert opened.json()["ai_verdict"]["score"] == 9
     assert opened.json()["ai_verdict"]["evidence"][0]["verdict"] == "AI 判 B"
-    assert duplicate.status_code == 409
+    # 一局只有一场庭：重复开庭返回既有那场，让全员进同一个房间
+    assert duplicate.status_code == 200
+    assert duplicate.json()["id"] == opened.json()["id"]
 
 
 def test_repeat_vote_updates_nominee_without_increasing_tally(trial_app) -> None:
@@ -494,3 +496,5 @@ def test_trial_state_exposes_vote_detail(trial_app) -> None:
         {"voter_id": player_ids[0], "nominee_id": player_ids[1]}
     ]
     assert state["tally"] == {str(player_ids[1]): 1}
+
+
