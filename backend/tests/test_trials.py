@@ -396,3 +396,84 @@ def test_websocket_receives_attend_vote_and_verdict_events(trial_app) -> None:
         assert verdict["guilty_player_id"] == player_ids[0]
         assert verdict["ai_verdict_player_id"] == player_ids[1]
         assert verdict["ai_agrees"] is False
+
+
+def _force_deadline_past(factory: async_sessionmaker, trial_id: int) -> None:
+    """把 deadline 推到过去，模拟投票超时但定时器已丢失（服务重启）。"""
+
+    async def run() -> None:
+        async with factory() as session:
+            trial = await session.get(Trial, trial_id)
+            trial.vote_deadline = datetime.now(UTC) - timedelta(seconds=5)
+            await session.commit()
+
+    asyncio.run(run())
+
+
+def test_reading_overdue_trial_settles_it(trial_app) -> None:
+    """定时器丢失后，任何人读取状态都应触发结算，而不是永远停在 voting。"""
+    client, factory = trial_app
+    trial_id, player_ids = _open_and_attend(client, factory)
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+    client.post(
+        f"/api/trials/{trial_id}/vote",
+        json={"voter_id": player_ids[0], "nominee_id": player_ids[1]},
+    )
+
+    _force_deadline_past(factory, trial_id)
+
+    state = client.get(f"/api/trials/{trial_id}").json()
+    assert state["status"] == "closed"
+    assert state["verdict"]["guilty_player_id"] == player_ids[1]
+
+
+def test_startup_settles_overdue_trials(trial_app) -> None:
+    """重启补结算：settle_overdue_trials 应结案已超时的审判。"""
+    client, factory = trial_app
+    trial_id, player_ids = _open_and_attend(client, factory)
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+    client.post(
+        f"/api/trials/{trial_id}/vote",
+        json={"voter_id": player_ids[0], "nominee_id": player_ids[1]},
+    )
+    _force_deadline_past(factory, trial_id)
+
+    async def run() -> int:
+        original = trials.SessionLocal
+        trials.SessionLocal = factory
+        try:
+            return await trials.settle_overdue_trials()
+        finally:
+            trials.SessionLocal = original
+
+    settled = asyncio.run(run())
+    assert settled == 1
+
+    async def status() -> str:
+        async with factory() as session:
+            trial = await session.get(Trial, trial_id)
+            return trial.status
+
+    assert asyncio.run(status()) == "closed"
+
+
+def test_stale_timer_does_not_settle_a_different_trial(trial_app) -> None:
+    """陈旧定时器（deadline 与当前记录不符）不得结算审判。"""
+    client, factory = trial_app
+    trial_id, _player_ids = _open_and_attend(client, factory)
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+
+    async def run() -> str:
+        original = trials.SessionLocal
+        trials.SessionLocal = factory
+        try:
+            # 用一个与数据库中不一致的 deadline 调用，模拟上一局遗留的任务
+            stale = datetime.now(UTC) - timedelta(hours=1)
+            await trials._settle_at_deadline(trial_id, stale)
+        finally:
+            trials.SessionLocal = original
+        async with factory() as session:
+            trial = await session.get(Trial, trial_id)
+            return trial.status
+
+    assert asyncio.run(run()) == "voting"

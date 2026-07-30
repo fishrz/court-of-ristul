@@ -162,6 +162,14 @@ async def open_trial(match_id: int, session: Session) -> dict[str, Any]:
 @router.get("/api/trials/{trial_id}")
 async def trial_state(trial_id: int, session: Session) -> dict[str, Any]:
     trial = await _get_trial(session, trial_id)
+    # 惰性结算：即使定时器丢失（重启）或全员离线无人再投票，
+    # 只要有人读取状态，超时的审判就会被正确结案，不会永远卡在 voting。
+    if (
+        trial.status == "voting"
+        and trial.vote_deadline is not None
+        and _now() >= _aware(trial.vote_deadline)
+    ):
+        await _settle(session, trial)
     return _trial_payload(trial, _tally(trial.votes))
 
 
@@ -367,7 +375,37 @@ async def _settle_at_deadline(trial_id: int, deadline: datetime) -> None:
     await asyncio.sleep(delay)
     async with SessionLocal() as session:
         trial = await _get_trial(session, trial_id)
+        # 这个任务可能是上一局遗留的：主键被复用、或投票被重开过。
+        # 只有当 trial 仍在投票中、且 deadline 与本任务当初排定的一致时才结算，
+        # 否则一个陈旧的 timer 会把另一局提前判掉。
+        if trial.status != "voting" or trial.vote_deadline is None:
+            return
+        if _aware(trial.vote_deadline) != _aware(deadline):
+            return
         await _settle(session, trial)
+
+
+async def settle_overdue_trials() -> int:
+    """服务启动时补结算：内存中的 deadline 任务不会在重启后存活，
+    没有这一步，重启时正在投票的审判会永远停在 voting。"""
+    async with SessionLocal() as session:
+        result = await session.execute(
+            select(Trial).where(Trial.status == "voting")
+        )
+        settled = 0
+        for row in result.scalars().all():
+            deadline = row.vote_deadline
+            if deadline is None:
+                continue
+            remaining = (_aware(deadline) - _now()).total_seconds()
+            trial = await _get_trial(session, row.id)
+            if remaining <= 0:
+                await _settle(session, trial)
+                settled += 1
+            else:
+                # 还没到点，重建定时器
+                asyncio.create_task(_settle_at_deadline(trial.id, deadline))
+        return settled
 
 
 @router.websocket("/ws/trials/{trial_id}")

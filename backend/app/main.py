@@ -12,12 +12,16 @@ from app.poller import polling_loop
 from app.routers.matches import router as matches_router
 from app.routers.players import router as players_router
 from app.routers.trials import router as trials_router
+from app.routers.trials import settle_overdue_trials
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     async with engine.begin() as connection:
         await connection.run_sync(Base.metadata.create_all)
+    # 内存中的 deadline 定时器不会跨重启存活。补结算已超时的审判，
+    # 并为尚未到点的重建定时器，否则重启会让进行中的审判永远停在 voting。
+    await settle_overdue_trials()
     poller_task = asyncio.create_task(polling_loop(SessionLocal))
     yield
     poller_task.cancel()
