@@ -8,6 +8,7 @@ from app.db import Base, SessionLocal, engine
 from app.poller import polling_loop
 from app.routers.matches import router as matches_router
 from app.routers.players import router as players_router
+from app.routers.trials import router as trials_router
 
 
 @asynccontextmanager
@@ -25,6 +26,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="瑞斯图尔法庭", lifespan=lifespan)
 app.include_router(matches_router)
 app.include_router(players_router)
+app.include_router(trials_router)
 
 
 @app.get("/health")
