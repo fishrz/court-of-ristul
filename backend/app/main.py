@@ -1,8 +1,10 @@
 import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager, suppress
+from pathlib import Path
 
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
 
 from app.db import Base, SessionLocal, engine
 from app.poller import polling_loop
@@ -27,6 +29,15 @@ app = FastAPI(title="瑞斯图尔法庭", lifespan=lifespan)
 app.include_router(matches_router)
 app.include_router(players_router)
 app.include_router(trials_router)
+
+
+STATIC_DIR = Path(__file__).resolve().parent.parent / "static"
+
+
+@app.get("/join")
+async def join_page() -> FileResponse:
+    """Steam ID 登记页（T5）。给五黑朋友填 ID 用。"""
+    return FileResponse(STATIC_DIR / "join.html")
 
 
 @app.get("/health")
