@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>登记在册 · 瑞斯图尔法庭</title>
+<style>
+:root{
+  --void:#0a0705;
+  --pitch:#120c08;
+  --ash:#1c1310;
+  --ash2:#241813;
+  --line:#3a2418;
+  --ember:#c8501e;
+  --ember-hi:#ff7a35;
+  --gold:#d9a441;
+  --gold-hi:#ffd479;
+  --blood:#8e1f18;
+  --bone:#e8ddcd;
+  --bone-dim:#9c8d7c;
+  --jade:#4f9d69;
+  --r:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--void);color:var(--bone);
+  font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif;
+  line-height:1.75;overscroll-behavior:none}
+body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;overflow-x:hidden;
+  background:
+   radial-gradient(120% 60% at 50% -10%, rgba(200,80,30,.16), transparent 60%),
+   radial-gradient(90% 40% at 50% 108%, rgba(142,31,24,.14), transparent 60%),
+   var(--void)}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* 注意：本文件底部有 position:fixed 的 .dock。
+   body / .app / .sec 等任何祖先层严禁出现 transform / filter / perspective，
+   否则会形成新的 containing block，手机上底部按钮点不到。 */
+.app{padding:0 0 168px}
+
+/* ── crest ── */
+.crest{padding:26px 20px 18px;text-align:center;position:relative;border-bottom:1px solid var(--line)}
+.crest .sigil{font-size:26px;line-height:1;color:var(--ember-hi);display:block;margin-bottom:8px}
+.crest h1{font-size:19px;letter-spacing:.42em;font-weight:600;color:var(--gold);text-indent:.42em}
+.crest .en{font-size:9.5px;letter-spacing:.34em;color:var(--bone-dim);text-transform:uppercase;margin-top:5px;text-indent:.34em}
+.crest .rule{position:absolute;left:0;right:0;bottom:-1px;height:1px;
+  background:linear-gradient(90deg,transparent,var(--ember),transparent)}
+
+/* ── section ── */
+.sec{margin:22px 16px 0}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec-h .t{font-size:12px;letter-spacing:.26em;color:var(--gold);white-space:nowrap}
+.sec-h .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.sec-h .n{font-size:10px;color:var(--bone-dim);letter-spacing:.1em;flex:none}
+
+/* ── 誓词 ── */
+.oath{margin:18px 16px 0;padding:15px 16px;border:1px solid rgba(217,164,65,.3);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(217,164,65,.07),var(--ash))}
+.oath p{font-size:13px;line-height:1.85;color:#c9b49a}
+.oath p b{color:var(--gold-hi);font-weight:600}
+
+/* ── 输入 ── */
+.field{border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);padding:14px 15px}
+.field label{display:block;font-size:10px;letter-spacing:.24em;color:var(--bone-dim);
+  text-transform:uppercase;margin-bottom:9px}
+.field input{width:100%;background:transparent;border:0;border-bottom:1px solid var(--line);
+  color:var(--bone);font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums;
+  font-size:17px;letter-spacing:.08em;padding:6px 0 9px;outline:none}
+.field input:focus{border-bottom-color:rgba(217,164,65,.55)}
+.field input::placeholder{color:var(--bone-dim);opacity:.45;letter-spacing:.04em}
+.field .sub{font-size:11px;color:var(--bone-dim);margin-top:9px;line-height:1.7}
+
+/* ── 预览卡 ── */
+.preview{margin-top:10px;border:1px solid var(--line);border-left:2px solid var(--ember);
+  border-radius:var(--r);background:var(--pitch);padding:14px 15px;
+  display:flex;gap:13px;align-items:center;min-height:66px}
+.preview.ok{border-left-color:var(--jade)}
+.preview.bad{border-left-color:var(--blood)}
+.preview .pfp{width:40px;height:40px;border-radius:50%;flex:none;border:1px solid var(--line);
+  background:var(--ash2);object-fit:cover;display:block}
+.preview .ph{width:40px;height:40px;border-radius:50%;flex:none;border:1px solid var(--line);
+  background:var(--ash2);display:grid;place-items:center;font-size:15px;color:var(--bone-dim)}
+.preview .txt{flex:1;min-width:0}
+.preview .nm{font-size:15px;font-weight:650;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.preview .id{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-size:11px;color:var(--bone-dim);
+  letter-spacing:.06em;margin-top:2px}
+.preview .msg{font-size:12.5px;color:#c9b49a;line-height:1.65}
+.preview .msg.err{color:#e2564a}
+.preview .tag{display:inline-block;font-size:9.5px;letter-spacing:.2em;color:var(--jade);
+  border:1px solid rgba(79,157,105,.45);padding:2px 7px;border-radius:2px;margin-bottom:6px}
+
+/* ── 名册 ── */
+.roll{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--pitch)}
+.seat{display:flex;align-items:center;gap:12px;padding:12px 13px;
+  border-top:1px solid rgba(58,36,24,.5)}
+.seat:first-child{border-top:0}
+.seat.fresh{background:linear-gradient(90deg,rgba(79,157,105,.1),var(--pitch) 60%)}
+.seat .pfp{width:32px;height:32px;border-radius:50%;flex:none;border:1px solid var(--line);
+  background:var(--ash2);object-fit:cover;display:block}
+.seat .ph{width:32px;height:32px;border-radius:50%;flex:none;border:1px solid var(--line);
+  background:var(--ash2);display:grid;place-items:center;font-size:12px;color:var(--bone-dim)}
+.seat .who{flex:1;min-width:0}
+.seat .who b{display:block;font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seat .who i{font-style:normal;font-family:ui-monospace,"SF Mono",Menlo,monospace;
+  font-size:10px;color:var(--bone-dim);letter-spacing:.06em}
+.seat .st{font-size:9.5px;letter-spacing:.16em;color:var(--jade);flex:none}
+.seat.off .who b{color:var(--bone-dim)}
+.seat.off .st{color:var(--bone-dim)}
+.empty{padding:22px 16px;text-align:center;font-size:11.5px;color:#6d6055;font-style:italic}
+
+/* ── 指引 ── */
+.guide{border:1px dashed var(--line);border-radius:var(--r);background:var(--pitch);padding:15px 16px}
+.guide li{list-style:none;font-size:12.5px;color:#c9b49a;line-height:1.8;padding-left:22px;
+  position:relative;margin-bottom:9px}
+.guide li:last-child{margin-bottom:0}
+.guide li .k{position:absolute;left:0;top:0;font-size:10px;color:var(--gold);letter-spacing:.06em}
+.guide li b{color:var(--bone);font-weight:600}
+.guide a{color:var(--ember-hi);text-decoration:none;border-bottom:1px dotted rgba(200,80,30,.6)}
+
+/* ── 底栏（fixed，祖先无 transform） ── */
+.dock{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;z-index:40;
+  background:rgba(10,7,5,.94);backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom))}
+.dock .note{font-size:10.5px;color:var(--bone-dim);letter-spacing:.06em;margin-bottom:9px;
+  min-height:16px;line-height:1.5}
+.dock .note.err{color:#e2564a}
+.dock .note.ok{color:var(--jade)}
+.btn{display:block;width:100%;font-family:inherit;font-size:13px;letter-spacing:.28em;text-indent:.28em;
+  color:var(--gold-hi);background:linear-gradient(160deg,rgba(200,80,30,.28),rgba(18,12,8,.9));
+  border:1px solid var(--ember);border-radius:var(--r);padding:14px 0;cursor:pointer;
+  box-shadow:0 0 34px -16px rgba(200,80,30,.9)}
+.btn:disabled{color:var(--bone-dim);border-color:var(--line);background:var(--ash);
+  box-shadow:none;cursor:default}
+.btn.busy{color:var(--bone-dim)}
+
+/* ── 完成态 ── */
+.done{margin:18px 16px 0;border:1px solid rgba(79,157,105,.45);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(79,157,105,.16),var(--pitch));
+  padding:22px 18px;text-align:center;box-shadow:0 0 40px -18px rgba(79,157,105,.8)}
+.done .seal{font-size:30px;line-height:1;color:var(--jade)}
+.done .t{font-size:19px;font-weight:700;letter-spacing:.14em;color:#7ede9a;margin-top:10px}
+.done .p{font-size:12px;color:#bfd4c4;margin-top:7px;letter-spacing:.06em}
+.hide{display:none}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header class="crest">
+    <span class="sigil">⚖</span>
+    <h1>登记在册</h1>
+    <div class="en">Enrol · Court of Ristul</div>
+    <div class="rule"></div>
+  </header>
+
+  <div class="oath">
+    <p>本庭只审<b>在册之人</b>。留下你的 Steam ID，此后你的每一局都将存档为案卷，
+    功过俱录，不得删改。<b>录入名册</b>即视为自愿受审。</p>
+  </div>
+
+  <section class="sec">
+    <div class="sec-h"><span class="t">呈上凭证</span><span class="rule"></span><span class="n">STEP 1</span></div>
+    <div class="field">
+      <label for="sid">Steam ID</label>
+      <input id="sid" type="text" inputmode="numeric" autocomplete="off" autocapitalize="off"
+             spellcheck="false" placeholder="123456789 或 76561198083722517" />
+      <div class="sub">32 位 account_id 或 17 位 SteamID64 都收。填完点别处，本庭自会查验。</div>
+    </div>
+    <div id="preview" class="preview hide"></div>
+  </section>
+
+  <section class="sec" id="nameSec">
+    <div class="sec-h"><span class="t">署名</span><span class="rule"></span><span class="n">STEP 2</span></div>
+    <div class="field">
+      <label for="dname">名册上的称呼</label>
+      <input id="dname" type="text" autocomplete="off" maxlength="100" placeholder="默认取 Steam 昵称" />
+      <div class="sub">留空则沿用查到的 Steam 昵称。这个名字会出现在判决书上。</div>
+    </div>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><span class="t">凭证何处寻</span><span class="rule"></span><span class="n">HELP</span></div>
+    <ul class="guide">
+      <li><span class="k">其一</span>打开 <b>Dota 2 客户端</b> → 点左上角头像 → <b>个人资料</b>，
+        页面右上角那串数字就是 32 位 ID。</li>
+      <li><span class="k">其二</span>在 Steam 个人资料页复制主页链接，
+        粘到 <a href="https://steamid.io" target="_blank" rel="noopener">steamid.io</a>，
+        取 <b>steamID32</b> 里括号中的数字，或直接给 <b>steamID64</b>。</li>
+      <li><span class="k">其三</span>OpenDota 个人页 URL 末尾的数字同样可用：
+        <span class="mono">opendota.com/players/<b>123456789</b></span></li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec-h"><span class="t">本庭已收录</span><span class="rule"></span><span class="n" id="rollN">—</span></div>
+    <div class="roll" id="roll">
+      <div class="empty">名册调阅中…</div>
+    </div>
+  </section>
+
+  <div id="doneCard" class="done hide">
+    <div class="seal">⚖</div>
+    <div class="t">已录入名册</div>
+    <div class="p" id="doneWho"></div>
+  </div>
+
+</div>
+
+<div class="dock">
+  <div class="note" id="note">先呈上 Steam ID。</div>
+  <button class="btn" id="submitBtn" disabled>录 入 名 册</button>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var API = "/api";
+  var sidEl = document.getElementById("sid");
+  var nameEl = document.getElementById("dname");
+  var previewEl = document.getElementById("preview");
+  var noteEl = document.getElementById("note");
+  var btnEl = document.getElementById("submitBtn");
+  var rollEl = document.getElementById("roll");
+  var rollNEl = document.getElementById("rollN");
+  var doneEl = document.getElementById("doneCard");
+  var doneWhoEl = document.getElementById("doneWho");
+
+  var resolved = null;      // {steam_id, display_name, avatar_url}
+  var lastResolvedRaw = "";
+  var busy = false;
+
+  function esc(s) {
+    return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function setNote(text, kind) {
+    noteEl.textContent = text;
+    noteEl.className = "note" + (kind ? " " + kind : "");
+  }
+
+  function syncButton() {
+    btnEl.disabled = busy || !resolved;
+    btnEl.classList.toggle("busy", busy);
+  }
+
+  function avatarHtml(url, name, cls) {
+    if (url) {
+      return '<img class="' + cls + '" src="' + esc(url) + '" alt="" ' +
+             'onerror="this.style.display=&#39;none&#39;" />';
+    }
+    var initial = (name || "?").trim().charAt(0) || "?";
+    return '<div class="' + cls.replace("pfp", "ph") + '">' + esc(initial) + "</div>";
+  }
+
+  /* ── STEP 1：失焦时查 OpenDota 预览 ── */
+  function renderPreview(state, data) {
+    previewEl.classList.remove("hide", "ok", "bad");
+    if (state === "loading") {
+      previewEl.innerHTML = '<div class="ph">…</div><div class="txt">' +
+        '<div class="msg">正在向 OpenDota 核验此人…</div></div>';
+      return;
+    }
+    if (state === "error") {
+      previewEl.classList.add("bad");
+      previewEl.innerHTML = '<div class="ph">✕</div><div class="txt">' +
+        '<div class="msg err">' + esc(data) + "</div></div>";
+      return;
+    }
+    previewEl.classList.add("ok");
+    previewEl.innerHTML =
+      avatarHtml(data.avatar_url, data.display_name, "pfp") +
+      '<div class="txt"><span class="tag">查验通过</span>' +
+      '<div class="nm">' + esc(data.display_name || "（此人未设昵称）") + "</div>" +
+      '<div class="id">ACCOUNT ' + esc(data.steam_id) + "</div></div>";
+  }
+
+  function clearPreview() {
+    resolved = null;
+    previewEl.className = "preview hide";
+    previewEl.innerHTML = "";
+    syncButton();
+  }
+
+  async function resolveSteamId() {
+    var raw = sidEl.value.trim();
+    if (!raw) { clearPreview(); setNote("先呈上 Steam ID。"); return; }
+    if (raw === lastResolvedRaw && resolved) { return; }
+    lastResolvedRaw = raw;
+    resolved = null;
+    syncButton();
+    renderPreview("loading");
+    setNote("核验中…");
+
+    var res;
+    try {
+      res = await fetch(API + "/players/resolve/" + encodeURIComponent(raw), {
+        headers: { Accept: "application/json" }
+      });
+    } catch (e) {
+      renderPreview("error", "连不上本庭书记官，检查网络后重试。");
+      setNote("网络中断。", "err");
+      return;
+    }
+
+    if (res.status === 422 || res.status === 400) {
+      renderPreview("error", "这不是一个有效的 Steam ID。请核对后重填。");
+      setNote("凭证无效。", "err");
+      return;
+    }
+    if (res.status === 502 || res.status === 404) {
+      renderPreview("error", "OpenDota 查无此人。可能是 ID 填错，或该账号资料未公开。");
+      setNote("OpenDota 查无此人。", "err");
+      return;
+    }
+    if (!res.ok) {
+      renderPreview("error", "书记官暂时无法应答（" + res.status + "），稍后再试。");
+      setNote("查验失败。", "err");
+      return;
+    }
+
+    var data = await res.json();
+    resolved = data;
+    renderPreview("ok", data);
+    if (!nameEl.value.trim() && data.display_name) { nameEl.value = data.display_name; }
+    setNote("确认无误后即可录入名册。", "ok");
+    syncButton();
+  }
+
+  sidEl.addEventListener("blur", resolveSteamId);
+  sidEl.addEventListener("input", function () {
+    if (sidEl.value.trim() !== lastResolvedRaw) { clearPreview(); setNote("凭证已改，需重新查验。"); }
+  });
+  sidEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); sidEl.blur(); }
+  });
+
+  /* ── STEP 3：登记 ── */
+  btnEl.addEventListener("click", async function () {
+    if (busy || !resolved) { return; }
+    var displayName = nameEl.value.trim() || resolved.display_name || "";
+    if (!displayName) {
+      setNote("此人未设 Steam 昵称，请手填一个名册称呼。", "err");
+      nameEl.focus();
+      return;
+    }
+
+    busy = true;
+    syncButton();
+    setNote("正在录入名册…");
+
+    var res;
+    try {
+      res = await fetch(API + "/players", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ steam_id: resolved.steam_id, display_name: displayName })
+      });
+    } catch (e) {
+      busy = false; syncButton();
+      setNote("连不上本庭书记官，稍后再试。", "err");
+      return;
+    }
+
+    busy = false;
+    syncButton();
+
+    if (res.status === 409) {
+      setNote("此人早已在册，无需重复登记。", "err");
+      await loadRoll(resolved.steam_id);
+      return;
+    }
+    if (res.status === 422) {
+      setNote("凭证或称呼不合规，请检查后重填。", "err");
+      return;
+    }
+    if (!res.ok) {
+      setNote("录入失败（" + res.status + "），稍后再试。", "err");
+      return;
+    }
+
+    var player = await res.json();
+    doneWhoEl.textContent = player.display_name + " · ACCOUNT " + player.steam_id;
+    doneEl.classList.remove("hide");
+    setNote("已录入名册，静候传票。", "ok");
+    btnEl.disabled = true;
+    try { localStorage.setItem("cor.steam_id", String(player.steam_id)); } catch (e) {}
+    await loadRoll(player.steam_id);
+    doneEl.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
+
+  /* ── 名册 ── */
+  function renderRoll(players, highlightSteamId) {
+    if (!players.length) {
+      rollNEl.textContent = "0 人";
+      rollEl.innerHTML = '<div class="empty">名册空空，尚无一人受审。</div>';
+      return;
+    }
+    rollNEl.textContent = players.length + " 人";
+    rollEl.innerHTML = players.map(function (p) {
+      var off = p.is_active === false;
+      var fresh = highlightSteamId != null && String(p.steam_id) === String(highlightSteamId);
+      return '<div class="seat' + (off ? " off" : "") + (fresh ? " fresh" : "") + '">' +
+        avatarHtml(p.avatar_url, p.display_name, "pfp") +
+        '<div class="who"><b>' + esc(p.display_name) + "</b>" +
+        "<i>ACCOUNT " + esc(p.steam_id) + "</i></div>" +
+        '<div class="st">' + (off ? "已停审" : "在册") + "</div></div>";
+    }).join("");
+  }
+
+  async function loadRoll(highlightSteamId) {
+    try {
+      var res = await fetch(API + "/players", { headers: { Accept: "application/json" } });
+      if (!res.ok) { throw new Error("status " + res.status); }
+      renderRoll(await res.json(), highlightSteamId);
+    } catch (e) {
+      rollNEl.textContent = "—";
+      rollEl.innerHTML = '<div class="empty">名册调阅失败，书记官暂未应答。</div>';
+    }
+  }
+
+  loadRoll();
+})();
+</script>
+</body>
+</html>
