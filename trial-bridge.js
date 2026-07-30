@@ -351,6 +351,14 @@ function renderVerdict(ev) {
   const nameEl = document.getElementById("guiltyName");
   if (nameEl && guilty != null) nameEl.textContent = nameOfPlayer(guilty);
 
+  // 判词/英雄/建议正文按真实被告渲染（主脚本提供），否则 s5 会留着设计稿假判决
+  // NOMINEES 是主脚本的 let 声明，不在 window 上，只能靠裸标识符取
+  if (window.renderVerdictBody && guilty != null) {
+    const list = (typeof NOMINEES !== "undefined" && NOMINEES) || [];
+    const nom = list.find(n => n.player_id === guilty);
+    if (nom) window.renderVerdictBody(nom);
+  }
+
   // AI 判决是否与群众一致 —— 产品核心看点
   const aiEl = document.getElementById("aiVerdict");
   if (aiEl) {

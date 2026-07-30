@@ -452,29 +452,20 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
       color:var(--bone-dim);cursor:pointer;padding:4px 10px;line-height:1">‹</div>
   </div>
 
-  <div class="banner lose">
+  <div class="banner lose" id="briefBanner">
     <div class="lbl">速报 · Preliminary</div>
-    <div class="big">败北</div>
-    <div class="meta mono">36:52 &nbsp;·&nbsp; 天辉 &nbsp;·&nbsp; 五黑 &nbsp;·&nbsp; #8917764448</div>
+    <div class="big" id="briefBig">败北</div>
+    <div class="meta mono" id="briefMeta">—</div>
   </div>
 
   <div class="sec">
-    <div class="sec-h"><span class="t">阵亡名单</span><span class="rule"></span><span class="n mono">5 名被告</span></div>
+    <div class="sec-h"><span class="t">阵亡名单</span><span class="rule"></span><span class="n mono" id="briefCount">5 名被告</span></div>
     <div class="roster">
       <div class="rhead">
         <span>被告</span><span style="text-align:right">K/D/A</span><span style="text-align:right">GPM</span>
         <span style="text-align:right">参团</span><span style="text-align:right">输出%</span>
       </div>
-      <div class="rrow"><div class="who"><div class="nm">WhatToSay</div><div class="hr">骷髅王 · 大哥</div></div>
-        <span class="v mono">5/7/16</span><span class="v mono">574</span><span class="v mono hi">81%</span><span class="v mono">26.5</span></div>
-      <div class="rrow"><div class="who"><div class="nm">风希</div><div class="hr">莉娜 · 中单</div></div>
-        <span class="v mono">9/8/9</span><span class="v mono">627</span><span class="v mono">69%</span><span class="v mono">27.8</span></div>
-      <div class="rrow"><div class="who"><div class="nm">奥妙</div><div class="hr">谜团 · 三号位</div></div>
-        <span class="v mono">2/8/14</span><span class="v mono">451</span><span class="v mono">62%</span><span class="v mono hi">29.1</span></div>
-      <div class="rrow"><div class="who"><div class="nm">黑刺</div><div class="hr">巨牙海民 · 辅助</div></div>
-        <span class="v mono">5/8/13</span><span class="v mono">293</span><span class="v mono">69%</span><span class="v mono">10.5</span></div>
-      <div class="rrow flag"><div class="who"><div class="nm">Perennis</div><div class="hr">莱恩 · 辅助</div></div>
-        <span class="v mono">5/7/5</span><span class="v mono">355</span><span class="v mono low">38%</span><span class="v mono low">6.1</span></div>
+      <div id="briefRoster"></div>
     </div>
   </div>
 
@@ -553,35 +544,35 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
       <path d="M30 12 l3 5 h-6 z" fill="#ff7a35"/>
     </svg>
     <div class="pre">本局判决</div>
-    <div class="award">本局大÷</div>
+    <div class="award" id="verdictAward">本局大÷</div>
   </div>
 
   <div class="guilty">
-    <div class="nm3" id="guiltyName">Perennis</div>
-    <div class="hr3">莱恩 · 四号位 · 5/7/5</div>
-    <div class="votes mono" id="voteResult">3 票定罪 &nbsp;·&nbsp; 1 票 风希 &nbsp;·&nbsp; 1 票 奥妙</div>
+    <div class="nm3" id="guiltyName">—</div>
+    <div class="hr3" id="guiltyHero">—</div>
+    <div class="votes mono" id="voteResult">—</div>
     <div class="aiv" id="aiVerdict" style="display:none"></div>
   </div>
 
   <div class="sec">
     <div class="sec-h"><span class="t">判词</span><span class="rule"></span></div>
-    <div class="ev">
-      <h4>「你不是在打团，你是在观战。」</h4>
-      <div class="num">全场参团率 <b>38.5%</b>，队伍最低（均值 68%）。伤害占比 <b>6.1%</b>，却拿走 <b>16.8%</b> 经济，塔伤 <b>0</b>。</div>
-      <div class="quip">莱恩：技能全是控，人不在场，控空气。</div>
+    <div class="ev" id="verdictEv">
+      <h4 id="verdictQuip">—</h4>
+      <div class="num" id="verdictFact">—</div>
+      <div class="quip" id="verdictQuip2"></div>
     </div>
   </div>
 
-  <div class="sec">
+  <div class="sec" id="adviceSec">
     <div class="sec-h"><span class="t">判后教育</span><span class="rule"></span><span class="n">真心的</span></div>
     <div class="advice">
       <span class="tag">改进建议</span>
-      <p>你的问题不是操作，是<b>位置</b>。20 分钟那波团你在下路清兵，团战打完 14 秒你才 TP 到。莱恩这种爆发控，站位靠前 300 码比多刷两波野价值高得多——下局把 TP 常备 2 个，听到"打了"就往前走，别等信号第二遍。</p>
+      <p id="adviceText">—</p>
     </div>
   </div>
 
   <div class="sec" id="appealSec">
-    <div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n">被告 Perennis</span></div>
+    <div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n" id="appealWho">被告</span></div>
     <div class="appeal" id="appealBox">
       <textarea id="appealTxt" maxlength="60" placeholder="给自己辩护一句，60 字以内。说得好可以进判决卡。"></textarea>
       <div class="row">
@@ -1015,9 +1006,78 @@ let CASES = [
     heroes:"巨魔 · 天怒 · 兽王 · 莱恩 · 术士" }
 ];
 
+/* ── 打开一份案卷 ──
+   以前这里写死 onclick="go(5)"，点任何一局都跳到同一个宣判页，
+   而那页是设计稿的静态判决（Perennis · 莱恩），于是「每局都显示同一个大÷」。
+   正确入口是速报：先加载该局真实数据，再进 s1。 */
+let CUR_CASE = null;
+async function openCase(matchId){
+  const c = CASES.find(x=>String(x.id)===String(matchId));
+  if(!c) return;
+  CUR_CASE = c;
+  const detail = await loadMatch(matchId);
+  renderBrief(c, detail);
+  go(1);
+}
+
+/* 速报页：真实比分、真实阵亡名单 */
+function renderBrief(c, detail){
+  const win = c.res==='win';
+  const banner = document.getElementById('briefBanner');
+  if(banner) banner.className = 'banner ' + (win?'win':'lose');
+  const big = document.getElementById('briefBig');
+  if(big) big.textContent = win ? '胜诉' : '败北';
+
+  const side = detail && detail.our_side==='radiant' ? '天辉'
+             : detail && detail.our_side==='dire' ? '夜魇' : '';
+  const meta = document.getElementById('briefMeta');
+  if(meta) meta.innerHTML = [c.dur, side, '五黑', '#'+c.id]
+    .filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+  // 我方五人，按 GPM 降序——名单本身就是一种排序陈述
+  const ours = ((detail && detail.players) || [])
+    .filter(p=>p.is_our_team)
+    .sort((a,b)=>(b.gpm||0)-(a.gpm||0));
+
+  const cnt = document.getElementById('briefCount');
+  if(cnt) cnt.textContent = `${ours.length} 名被告`;
+
+  const el = document.getElementById('briefRoster');
+  if(!el) return;
+  if(!ours.length){
+    el.innerHTML = '<div class="rrow"><div class="who"><div class="nm">名单加载失败</div></div></div>';
+    return;
+  }
+
+  // 参团率/输出占比要跟队内比较才有意义，先算极值
+  const tfs = ours.map(p=>p.teamfight_participation).filter(v=>v!=null);
+  const dmg = ours.map(p=>p.damage_share).filter(v=>v!=null);
+  const tfMin = Math.min(...tfs), tfMax = Math.max(...tfs);
+  const dmgMin = Math.min(...dmg), dmgMax = Math.max(...dmg);
+
+  el.innerHTML = ours.map(p=>{
+    let nm = '';
+    try { nm = (JSON.parse(p.metrics_json||'{}').name) || ''; } catch(e){}
+    const pos = POS_CN[p.lane_role] || p.lane_role || '';
+    const tf = p.teamfight_participation;
+    const ds = p.damage_share;
+    // 队内最低参团 = 本场最可疑，整行标红，和大÷提名对得上
+    const flag = tf!=null && tf===tfMin && tfs.length>1;
+    const cls = v=>(v==null?'':(v===tfMax||v===dmgMax)?' hi':(v===tfMin||v===dmgMin)?' low':'');
+    return `<div class="rrow${flag?' flag':''}">
+      <div class="who"><div class="nm">${nm||'玩家'}</div>
+        <div class="hr">${[p.hero_name||'', pos].filter(Boolean).join(' · ')}</div></div>
+      <span class="v mono">${p.kills??0}/${p.deaths??0}/${p.assists??0}</span>
+      <span class="v mono">${p.gpm??'—'}</span>
+      <span class="v mono${cls(tf)}">${tf!=null?Math.round(tf*100)+'%':'—'}</span>
+      <span class="v mono${cls(ds)}">${ds!=null?(ds*100).toFixed(1):'—'}</span>
+    </div>`;
+  }).join('');
+}
+
 function caseHTML(c){
   if(c.res==="pending"){
-    return `<div class="case pending" onclick="go(1)">
+    return `<div class="case pending" onclick="go('W')">
       <div class="l1"><span class="res l">待开庭</span><span class="dur mono">${c.dur}</span>
         <span class="when">${c.when}</span></div>
       <div class="l2"><span class="vd">卷宗已备妥 · 等五人到齐</span>
@@ -1026,11 +1086,15 @@ function caseHTML(c){
   }
   const rc = c.res==="win" ? "w" : "l";
   const rt = c.res==="win" ? "胜诉" : "败北";
-  return `<div class="case" onclick="go(5)">
+  // 判词栏：真宣判过才有 who；没开过庭就直说，不要摆别人的判决
+  const vd = c.who
+    ? `<span class="aw">${c.award}</span><span class="who2">${c.who}</span>` +
+      (c.note ? `<span style="color:#6d6055"> · ${c.note}</span>` : '')
+    : `<span style="color:#6d6055">${c.note||'尚未开庭 · 证据待质证'}</span>`;
+  return `<div class="case" onclick="openCase('${c.id}')">
     <div class="l1"><span class="res ${rc}">${rt}</span><span class="dur mono">${c.dur}</span>
       <span class="when">${c.when}</span></div>
-    <div class="l2"><span class="vd"><span class="aw">${c.award}</span><span class="who2">${c.who}</span>
-      <span style="color:#6d6055"> · ${c.note}</span></span>
+    <div class="l2"><span class="vd">${vd}</span>
       ${c.me?'<span class="badge">我被判</span>':''}</div>
     <div class="heroes">${c.heroes}</div></div>`;
 }
@@ -1289,8 +1353,52 @@ function castVote(){
       ? `${tally[top]} 票定罪` + (rest ? ` · ${rest}` : "")
       : `${tally[top]} 票领先 · 未过半` + (rest ? ` · ${rest}` : "");
 
+  renderVerdictBody(NOMINEES[top]);
   setTimeout(drop,400);
 }
+
+/* ── 宣判页正文 ──
+   以前 s5 整页是设计稿静态 HTML（Perennis · 莱恩 · 参团 38.5%），
+   不管判了谁都显示同一套判词。现在按真实被告和真实归因证据渲染。
+   注意：名字不能叫 renderVerdict —— trial-bridge.js 里已有同名函数负责
+   唱票/AI 判决，且它在本脚本之后加载，会把这个覆盖掉。
+   voteResult / aiVerdict 由 castVote 或 trial-bridge 各自填，这里不碰。 */
+function renderVerdictBody(nom){
+  const set = (id, txt) => { const e=document.getElementById(id); if(e) e.textContent = txt; };
+  if(!nom){
+    set('guiltyName','无人被判'); set('guiltyHero','—');
+    set('verdictQuip','「证据不足，本庭择日再审。」');
+    set('verdictFact','—'); set('verdictQuip2','');
+    const ad=document.getElementById('adviceSec'); if(ad) ad.style.display='none';
+    return;
+  }
+  const ad=document.getElementById('adviceSec'); if(ad) ad.style.display='';
+
+  // 归因引擎只产出「锅」，不产出 MVP。胜局若标成「本局 MVP」，
+  // 底下配的却是死亡 12 次这类罪证，奖项和证据自相矛盾。
+  // 赢了也能有人拖后腿，一律按大÷判。
+  set('verdictAward', '本局大÷');
+  set('guiltyName', nom.nm || '—');
+  set('guiltyHero', nom.hr || '—');
+  set('appealWho', '被告 ' + (nom.nm || ''));
+
+  // 判词取该被告最重的一条罪证；charge 是各条 fact 拼接，chips 是指标依据
+  const ev = (EVIDENCE || []).filter(e => (e.who||'').split(' · ')[0] === nom.nm)
+    .sort((a,b)=>(b.severity||0)-(a.severity||0));
+  const top = ev[0];
+  set('verdictQuip', top && top.quip ? top.quip : '「数据已呈堂，诸位自行体会。」');
+  set('verdictFact', top && top.fact ? top.fact : (nom.charge || '—'));
+  set('verdictQuip2', (nom.chips||[]).map(c=>Array.isArray(c)?c[0]:c).join(' · '));
+
+  // 建议：目前引擎不产出个性化建议，与其编一段假的，不如给出可核对的依据
+  const advice = document.getElementById('adviceText');
+  if(advice){
+    advice.textContent = ev.length > 1
+      ? `本庭另记录 ${ev.length - 1} 项次要事实：` + ev.slice(1).map(e=>e.fact).join('；')
+      : '本庭无进一步教育意见——数据已经说得够清楚了。';
+  }
+}
+window.renderVerdictBody = renderVerdictBody;
 
 function startTimer(){
   clearInterval(timerId);
