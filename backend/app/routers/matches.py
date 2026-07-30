@@ -96,7 +96,93 @@ async def match_detail(
     ]
     payload["evidence"] = _json_value(case.evidence_json)
     payload["nominees"] = _json_value(case.nominees_json)
+    payload["timeline"] = _timeline(case)
     return payload
+
+
+def _timeline(case: Match) -> dict[str, Any] | None:
+    """从 OpenDota 原始包里提取真实团战时间线。
+
+    前端原来是一段写死的设计稿：8 根固定高度的柱子 + 写死的
+    「20:04 一波团灭」。每场比赛长得一模一样，等于伪造证据。
+
+    raw_json 有 teamfights（起止秒、死亡数、每人 gold_delta）和
+    radiant_gold_adv（逐分钟经济差），够还原真实战况。
+    未解析的比赛没有这些字段，返回 None，前端隐藏该模块。
+    """
+    if not case.raw_json:
+        return None
+    try:
+        data = json.loads(case.raw_json)
+    except (ValueError, TypeError):
+        return None
+
+    fights_raw = data.get("teamfights")
+    if not isinstance(fights_raw, list) or not fights_raw:
+        return None
+
+    # 经济差是以天辉视角给的，我方在夜魇时要取反，否则转折点方向是反的
+    gold_adv = data.get("radiant_gold_adv")
+    if not isinstance(gold_adv, list):
+        gold_adv = []
+    flip = case.our_side == "dire"
+
+    def our_gold_at(second: int) -> int | None:
+        # 团战可能从负数秒开始（赛前 -90s 的选人/买装阶段），
+        # Python 的 // 对负数向下取整会取到 gold_adv[-1]，也就是终局经济差，
+        # 于是赛前小规模接触会显示成两万经济摆动。钳到 0。
+        minute = max(second, 0) // 60
+        if minute >= len(gold_adv):
+            return None
+        value = gold_adv[minute]
+        if not isinstance(value, (int, float)):
+            return None
+        return int(-value if flip else value)
+
+    fights: list[dict[str, Any]] = []
+    for raw in fights_raw:
+        if not isinstance(raw, dict):
+            continue
+        start = raw.get("start")
+        if not isinstance(start, (int, float)):
+            continue
+        start = max(int(start), 0)
+        deaths = int(raw.get("deaths") or 0)
+        before = our_gold_at(start)
+        after = our_gold_at(max(int(raw.get("end") or start), 0))
+        swing = (after - before) if (before is not None and after is not None) else None
+        fights.append(
+            {
+                "start": start,
+                "label": f"{start // 60}'",
+                "deaths": deaths,
+                "gold_before": before,
+                "gold_after": after,
+                "swing": swing,
+            }
+        )
+    if not fights:
+        return None
+
+    # 转折点 = 经济摆动最狠的那一场，而不是死人最多的那场。
+    # 团灭对面和被团灭都死 10 人，只有经济方向能区分死得值不值。
+    #
+    # 但要排除最后一波：输的那局最后一团必然巨亏（对面正在推高地），
+    # 那是结果不是原因。转折点应该是「从这里开始不对劲」的那一场。
+    pivot = None
+    candidates = [f for f in fights[:-1] if f["swing"] is not None]
+    worst = min(candidates, key=lambda f: f["swing"], default=None)
+    # 门槛 1500：赢的局也总有一两波小亏，标成「转折点」是过度解读。
+    # 没有真正打崩的一波就不给转折点，前端隐藏那行结论。
+    if worst is not None and worst["swing"] <= -1500:
+        pivot = worst
+
+    return {
+        "count": len(fights),
+        "fights": fights,
+        "pivot": pivot,
+        "duration": case.duration,
+    }
 
 
 def _json_value(value: str | None) -> object | None:
