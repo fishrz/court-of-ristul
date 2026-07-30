@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>瑞斯图尔法庭 · Court of Ristul</title>
+<style>
+:root{
+  --void:#0a0705;
+  --pitch:#120c08;
+  --ash:#1c1310;
+  --ash2:#241813;
+  --line:#3a2418;
+  --ember:#c8501e;
+  --ember-hi:#ff7a35;
+  --gold:#d9a441;
+  --gold-hi:#ffd479;
+  --blood:#8e1f18;
+  --bone:#e8ddcd;
+  --bone-dim:#9c8d7c;
+  --jade:#4f9d69;
+  --r:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--void);color:var(--bone);
+  font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC",sans-serif;
+  line-height:1.75;overscroll-behavior:none}
+body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
+  background:
+   radial-gradient(120% 60% at 50% -10%, rgba(200,80,30,.16), transparent 60%),
+   radial-gradient(90% 40% at 50% 108%, rgba(142,31,24,.14), transparent 60%),
+   var(--void)}
+.mono{font-family:ui-monospace,"SF Mono",Menlo,monospace;font-variant-numeric:tabular-nums}
+
+/* ── shell ── */
+.app{padding:0 0 96px}
+.screen{display:none}
+.screen.on{display:block;animation:fade .45s ease both}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+/* ── crest / header ── */
+.crest{padding:26px 20px 18px;text-align:center;position:relative;border-bottom:1px solid var(--line)}
+.crest::after{content:"";position:absolute;left:50%;bottom:-1px;transform:translateX(-50%);
+  width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--ember),transparent)}
+.sigil{width:44px;height:44px;margin:0 auto 8px;display:block}
+.crest h1{font-size:19px;letter-spacing:.42em;font-weight:600;color:var(--gold);text-indent:.42em}
+.crest .en{font-size:9.5px;letter-spacing:.34em;color:var(--bone-dim);text-transform:uppercase;margin-top:5px;text-indent:.34em}
+
+/* ── verdict banner ── */
+.banner{margin:16px 16px 0;padding:16px 18px;border:1px solid var(--line);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(142,31,24,.28),rgba(18,12,8,.9));position:relative;overflow:hidden}
+.banner.win{background:linear-gradient(160deg,rgba(79,157,105,.2),rgba(18,12,8,.9))}
+.banner .lbl{font-size:10px;letter-spacing:.3em;color:var(--bone-dim);text-transform:uppercase}
+.banner .big{font-size:30px;font-weight:700;letter-spacing:.1em;margin-top:2px}
+.banner.lose .big{color:#ff6b52}
+.banner.win .big{color:#7ede9a}
+.banner .meta{font-size:11.5px;color:var(--bone-dim);margin-top:6px;letter-spacing:.06em}
+
+/* ── section ── */
+.sec{margin:22px 16px 0}
+.sec-h{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.sec-h .t{font-size:12px;letter-spacing:.26em;color:var(--gold);white-space:nowrap}
+.sec-h .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.sec-h .n{font-size:10px;color:var(--bone-dim)}
+
+/* ── roster table ── */
+.roster{border:1px solid var(--line);border-radius:var(--r);overflow:hidden}
+.rhead{display:grid;grid-template-columns:1fr 42px 52px 46px 46px;gap:6px;padding:8px 12px;
+  background:var(--ash2);font-size:9.5px;letter-spacing:.14em;color:var(--bone-dim);text-transform:uppercase}
+.rrow{display:grid;grid-template-columns:1fr 42px 52px 46px 46px;gap:6px;padding:11px 12px;
+  border-top:1px solid rgba(58,36,24,.55);background:var(--pitch);align-items:center;font-size:12.5px}
+.rrow.flag{background:linear-gradient(90deg,rgba(142,31,24,.24),var(--pitch))}
+.rrow .who{min-width:0}
+.rrow .nm{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rrow .hr{font-size:10.5px;color:var(--bone-dim);letter-spacing:.04em}
+.rrow .v{text-align:right;font-size:12px}
+.rrow .v.low{color:#e2564a}
+.rrow .v.hi{color:var(--jade)}
+
+/* ── bar ── */
+.bar{height:3px;background:var(--ash2);border-radius:2px;overflow:hidden;margin-top:5px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--ember),var(--gold))}
+.bar.bad i{background:linear-gradient(90deg,var(--blood),#e2564a)}
+
+/* ── evidence card ── */
+.ev{border:1px solid var(--line);border-left:2px solid var(--ember);border-radius:var(--r);
+  background:var(--pitch);padding:14px 15px;margin-bottom:10px;position:relative}
+.ev .tag{display:inline-block;font-size:9.5px;letter-spacing:.2em;color:var(--ember-hi);
+  border:1px solid rgba(200,80,30,.45);padding:2px 7px;border-radius:2px;margin-bottom:8px}
+.ev h4{font-size:14.5px;font-weight:650;letter-spacing:.02em}
+.ev .num{font-size:11.5px;color:var(--bone-dim);margin-top:5px;letter-spacing:.03em}
+.ev .num b{color:var(--gold-hi);font-weight:600}
+.ev .quip{font-size:12.5px;color:#c9b49a;margin-top:9px;padding-top:9px;border-top:1px dashed rgba(58,36,24,.9);font-style:italic}
+
+/* ── nominee ── */
+.nom{border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);
+  padding:14px 15px;margin-bottom:10px;display:flex;gap:13px;align-items:flex-start;
+  cursor:pointer;transition:.2s;position:relative}
+.nom:active{transform:scale(.985)}
+.nom.sel{border-color:var(--ember);background:linear-gradient(120deg,rgba(200,80,30,.16),var(--pitch));
+  box-shadow:0 0 0 1px rgba(200,80,30,.35),0 6px 24px -8px rgba(200,80,30,.5)}
+.rank{width:26px;height:26px;flex:none;border:1px solid var(--line);border-radius:50%;
+  display:grid;place-items:center;font-size:11px;color:var(--gold);margin-top:2px}
+.nom.sel .rank{border-color:var(--ember);color:var(--ember-hi)}
+.nom .body{flex:1;min-width:0}
+.nom .top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.nom .nm2{font-size:15px;font-weight:650}
+.nom .hr2{font-size:11px;color:var(--bone-dim)}
+.nom .score{margin-left:auto;font-size:15px;color:#e2564a;font-weight:650}
+.nom .charge{font-size:12.5px;color:#c9b49a;margin-top:6px;line-height:1.65}
+.nom .chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px}
+.chip{font-size:10px;letter-spacing:.05em;padding:2.5px 7px;border:1px solid var(--line);
+  border-radius:2px;color:var(--bone-dim);background:var(--ash)}
+.chip.red{color:#e2564a;border-color:rgba(226,86,74,.4)}
+
+/* ── vote tally ── */
+.tally{display:flex;gap:4px;margin-top:10px;height:20px;align-items:center}
+.av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9px;
+  background:var(--ash2);border:1px solid var(--line);color:var(--bone);animation:pop .3s ease both}
+@keyframes pop{from{opacity:0}to{opacity:1}}
+
+/* ── timer ── */
+.timer{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--void) 70%,transparent);
+  padding:12px 16px 10px}
+.tbar{height:2px;background:var(--ash2);border-radius:2px;overflow:hidden}
+.tbar i{display:block;height:100%;background:linear-gradient(90deg,var(--ember-hi),var(--blood));
+  width:100%;transition:width 1s linear}
+.tnum{display:flex;justify-content:space-between;font-size:10.5px;letter-spacing:.2em;
+  color:var(--bone-dim);margin-bottom:6px;text-transform:uppercase}
+.tnum b{color:var(--ember-hi);font-weight:600}
+
+/* ── verdict / result ── */
+.gavel{text-align:center;padding:34px 20px 8px}
+.gavel .pre{font-size:10px;letter-spacing:.4em;color:var(--bone-dim);text-transform:uppercase}
+.gavel .award{font-size:38px;font-weight:800;letter-spacing:.06em;margin:8px 0 4px;
+  background:linear-gradient(180deg,var(--gold-hi),var(--ember));-webkit-background-clip:text;
+  background-clip:text;color:transparent}
+.guilty{margin:18px 16px 0;border:1px solid var(--ember);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(200,80,30,.2),var(--pitch));padding:22px 18px;text-align:center;
+  box-shadow:0 0 40px -14px rgba(200,80,30,.7)}
+.guilty .nm3{font-size:27px;font-weight:750;letter-spacing:.06em}
+.guilty .hr3{font-size:12px;color:var(--bone-dim);margin-top:3px;letter-spacing:.1em}
+.guilty .votes{font-size:11px;color:var(--gold);margin-top:12px;letter-spacing:.14em}
+.seal{width:60px;height:60px;margin:0 auto 14px;display:block;opacity:.9}
+
+/* ── advice ── */
+.advice{border:1px solid rgba(79,157,105,.35);border-left:2px solid var(--jade);
+  border-radius:var(--r);background:linear-gradient(120deg,rgba(79,157,105,.1),var(--pitch));
+  padding:15px;margin-bottom:10px}
+.advice .tag{color:var(--jade);border-color:rgba(79,157,105,.45)}
+.advice p{font-size:13px;color:#bfd4c4;line-height:1.7}
+
+/* ── nav bar ── */
+.nav{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;z-index:40;
+  display:grid;grid-template-columns:1fr 1fr;background:rgba(10,7,5,.94);
+  backdrop-filter:blur(12px);border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom)}
+.nav a{padding:11px 0 10px;text-align:center;text-decoration:none;color:var(--bone-dim);
+  font-size:10px;letter-spacing:.24em;text-indent:.24em;cursor:pointer;position:relative}
+.nav a.on{color:var(--gold)}
+.nav a.on::before{content:"";position:absolute;top:-1px;left:50%;transform:translateX(-50%);
+  width:34px;height:1px;background:var(--ember)}
+.nav a .ic{display:block;font-size:15px;margin-bottom:3px;letter-spacing:0;text-indent:0}
+.has-nav{padding-bottom:118px}
+
+
+/* ── 候审室 ── */
+.wait{margin:20px 16px 0}
+.wait .hint{font-size:11.5px;color:var(--bone-dim);text-align:center;margin-bottom:18px;line-height:1.7}
+.seat{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);
+  border-radius:var(--r);background:var(--ash);margin-bottom:8px;position:relative;overflow:hidden;
+  transition:border-color .5s ease,background .5s ease}
+.seat.here{border-color:rgba(79,157,105,.5);background:linear-gradient(90deg,rgba(79,157,105,.09),var(--ash) 60%)}
+.seat .pfp{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);flex:none;
+  display:grid;place-items:center;font-size:13px;color:var(--bone-dim);background:var(--pitch);
+  transition:all .5s ease}
+.seat.here .pfp{border-color:rgba(79,157,105,.55);color:var(--jade)}
+.seat .who{flex:1;min-width:0}
+.seat .who b{display:block;font-size:13.5px;color:var(--bone-dim);font-weight:600;transition:color .5s ease}
+.seat.here .who b{color:var(--bone)}
+.seat .who i{font-style:normal;font-size:10px;color:var(--bone-dim);opacity:.65;letter-spacing:.05em}
+.seat .st{font-size:10px;letter-spacing:.14em;color:var(--bone-dim);flex:none}
+.seat.here .st{color:var(--jade)}
+.seat .poke{font-size:9.5px;letter-spacing:.1em;color:var(--ember-hi);border:1px solid rgba(200,80,30,.45);
+  padding:4px 9px;border-radius:2px;cursor:pointer;flex:none}
+.seat .poke.sent{color:var(--bone-dim);border-color:var(--line);cursor:default}
+.wcount{text-align:center;margin:22px 0 4px}
+.wcount .big{font-family:var(--mono);font-size:34px;color:var(--gold-hi);letter-spacing:.04em;line-height:1}
+.wcount .big s{text-decoration:none;color:var(--bone-dim);font-size:20px}
+.wcount .lb{font-size:10px;letter-spacing:.28em;color:var(--bone-dim);margin-top:7px}
+
+/* ── 举证翻牌 ── */
+.evstage{margin-top:4px;display:flex;flex-direction:column;gap:12px}
+.evnav{display:flex;align-items:center;gap:7px;justify-content:center;margin:20px 0 4px}
+.evnav i{width:22px;height:2px;background:var(--line);border-radius:2px;transition:all .45s ease}
+.evnav i.on{background:var(--ember);width:30px}
+.evnav i.past{background:rgba(200,80,30,.4)}
+
+/* ── 上诉 ── */
+.appeal{margin:0 16px}
+.appeal textarea{width:100%;box-sizing:border-box;background:var(--pitch);border:1px solid var(--line);
+  border-radius:var(--r);color:var(--bone);font-family:inherit;font-size:13px;line-height:1.75;
+  padding:13px 14px;resize:none;height:76px;outline:none}
+.appeal textarea:focus{border-color:rgba(217,164,65,.5)}
+.appeal textarea::placeholder{color:var(--bone-dim);opacity:.5}
+.appeal .row{display:flex;align-items:center;justify-content:space-between;margin-top:9px}
+.appeal .cc{font-family:var(--mono);font-size:10.5px;color:var(--bone-dim)}
+.appeal .cc.over{color:#ff5545}
+.appeal .sub{font-size:11px;letter-spacing:.14em;color:var(--gold);border:1px solid rgba(217,164,65,.45);
+  background:none;padding:7px 15px;border-radius:2px;cursor:pointer;font-family:inherit}
+.appeal .sub:disabled{color:var(--bone-dim);border-color:var(--line);cursor:default}
+.plea{margin:0 16px;padding:15px 16px;border:1px solid rgba(217,164,65,.3);border-radius:var(--r);
+  background:linear-gradient(160deg,rgba(217,164,65,.07),var(--ash));position:relative}
+.plea .qm{position:absolute;left:11px;top:4px;font-size:30px;color:rgba(217,164,65,.22);
+  font-family:Georgia,serif;line-height:1}
+.plea p{margin:0 0 9px;font-size:13.5px;line-height:1.8;color:var(--bone);padding-left:16px}
+.plea .by{font-size:10px;letter-spacing:.14em;color:var(--gold);text-align:right}
+
+/* ── summons (待开庭传票) ── */
+.summons{margin:18px 16px 0;border:1px solid var(--ember);border-radius:var(--r);
+  background:linear-gradient(155deg,rgba(200,80,30,.24),rgba(18,12,8,.95));
+  padding:20px 18px;position:relative;overflow:hidden;cursor:pointer;
+  box-shadow:0 0 44px -18px rgba(200,80,30,.9)}
+.summons::before{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(45deg,transparent,transparent 9px,rgba(200,80,30,.05) 9px,rgba(200,80,30,.05) 18px);
+  pointer-events:none}
+.summons:active{transform:scale(.99)}
+.summons .stamp{position:absolute;top:14px;right:14px;font-size:9px;letter-spacing:.2em;
+  color:var(--ember-hi);border:1px solid rgba(200,80,30,.5);padding:3px 8px;border-radius:2px;
+  animation:blink 2.2s ease-in-out infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.42}}
+.summons .kk{font-size:10px;letter-spacing:.36em;color:var(--bone-dim);text-transform:uppercase}
+.summons .ttl{font-size:23px;font-weight:750;letter-spacing:.06em;margin:7px 0 3px;color:var(--gold-hi)}
+.summons .sub{font-size:11.5px;color:#c9b49a;letter-spacing:.04em}
+.summons .go{margin-top:14px;padding-top:12px;border-top:1px dashed rgba(200,80,30,.4);
+  display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--ember-hi)}
+.summons .go .arw{font-size:15px}
+
+/* ── 休庭 ── */
+.recess{margin:18px 16px 0;border:1px dashed var(--line);border-radius:var(--r);
+  background:var(--pitch);padding:26px 18px;text-align:center}
+.recess .t{font-size:14px;color:var(--bone-dim);letter-spacing:.2em}
+.recess .p{font-size:11.5px;color:#6d6055;margin-top:7px;font-style:italic}
+
+/* ── 案底 stat ── */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:0}
+.stat{border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);
+  padding:13px 8px;text-align:center}
+.stat .n{font-size:22px;font-weight:700;color:var(--gold);letter-spacing:.02em}
+.stat .n.bad{color:#e2564a}
+.stat .l{font-size:9.5px;color:var(--bone-dim);letter-spacing:.14em;margin-top:3px}
+
+/* ── 案底榜 ── */
+.rap{border:1px solid var(--line);border-radius:var(--r);overflow:hidden;background:var(--pitch)}
+.rap .r{display:flex;align-items:center;gap:11px;padding:11px 13px;
+  border-top:1px solid rgba(58,36,24,.5);font-size:12.5px}
+.rap .r:first-child{border-top:0}
+.rap .r .i{width:20px;font-size:11px;color:var(--bone-dim)}
+.rap .r .n2{flex:1;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rap .r .cnt{font-size:11px;color:var(--bone-dim);letter-spacing:.08em}
+.rap .r .cnt b{color:#e2564a;font-size:15px;font-weight:700;margin-right:2px}
+.rap .r.top{background:linear-gradient(90deg,rgba(142,31,24,.2),var(--pitch))}
+.rap .r.top .i{color:var(--ember-hi)}
+
+/* ── 判决 feed / 案卷条目 ── */
+.case{display:block;border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);
+  padding:13px 14px;margin-bottom:9px;cursor:pointer;transition:.18s;text-decoration:none;color:inherit}
+.case:active{transform:scale(.99);border-color:var(--ember)}
+.case.pending{border-color:rgba(200,80,30,.6);
+  background:linear-gradient(120deg,rgba(200,80,30,.12),var(--pitch))}
+.case .l1{display:flex;align-items:center;gap:8px}
+.case .res{font-size:11px;font-weight:700;letter-spacing:.14em;padding:2px 7px;border-radius:2px}
+.case .res.w{color:#7ede9a;background:rgba(79,157,105,.16);border:1px solid rgba(79,157,105,.4)}
+.case .res.l{color:#ff6b52;background:rgba(142,31,24,.22);border:1px solid rgba(142,31,24,.5)}
+.case .dur{font-size:10.5px;color:var(--bone-dim);letter-spacing:.06em}
+.case .when{margin-left:auto;font-size:10px;color:#6d6055;letter-spacing:.08em}
+.case .l2{display:flex;align-items:center;gap:7px;margin-top:9px}
+.case .vd{font-size:12.5px;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.case .vd .aw{color:var(--gold);font-size:10.5px;letter-spacing:.1em;margin-right:5px}
+.case .vd .who2{font-weight:650}
+.case .badge{font-size:9.5px;letter-spacing:.14em;padding:2.5px 7px;border-radius:2px;
+  border:1px solid rgba(200,80,30,.5);color:var(--ember-hi);white-space:nowrap;flex:none}
+.case .heroes{font-size:10.5px;color:#6d6055;margin-top:7px;letter-spacing:.03em}
+
+/* ── 日期分组 ── */
+.daysep{display:flex;align-items:center;gap:10px;margin:18px 0 11px}
+.daysep .d{font-size:10.5px;letter-spacing:.22em;color:var(--bone-dim);white-space:nowrap}
+.daysep .rl{flex:1;height:1px;background:linear-gradient(90deg,var(--line),transparent)}
+.daysep .c{font-size:9.5px;color:#6d6055}
+
+/* ── 筛选 ── */
+.filters{display:flex;gap:7px;margin-bottom:2px;overflow-x:auto;padding-bottom:2px;
+  scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.fchip{font-size:11px;letter-spacing:.1em;padding:6px 13px;border:1px solid var(--line);
+  border-radius:2px;color:var(--bone-dim);background:var(--pitch);white-space:nowrap;cursor:pointer;
+  transition:.16s;flex:none}
+.fchip.on{border-color:var(--ember);color:var(--gold-hi);background:rgba(200,80,30,.16)}
+
+/* ── buttons ── */
+.dock{position:fixed;bottom:0;left:0;right:0;max-width:520px;margin:0 auto;
+  padding:12px 16px calc(12px + env(safe-area-inset-bottom));
+  background:linear-gradient(180deg,transparent,var(--void) 35%);z-index:30}
+/* 有 fixed dock 的页面必须留底部安全区，否则内容被 dock 压住 */
+.screen:has(.dock){padding-bottom:96px}
+.btn{width:100%;padding:15px;border:1px solid var(--ember);border-radius:var(--r);
+  background:linear-gradient(180deg,rgba(200,80,30,.3),rgba(200,80,30,.12));
+  color:var(--gold-hi);font-size:14px;letter-spacing:.28em;font-weight:600;
+  font-family:inherit;cursor:pointer;text-indent:.28em;transition:.18s}
+.btn:active{transform:scale(.985);background:rgba(200,80,30,.42)}
+.btn:disabled{opacity:.32;border-color:var(--line);color:var(--bone-dim)}
+.btn.ghost{background:transparent;border-color:var(--line);color:var(--bone-dim)}
+
+/* ── loading ── */
+.load{text-align:center;padding:70px 24px 40px}
+.load .spin{width:52px;height:52px;margin:0 auto 22px;border:1px solid var(--line);
+  border-top-color:var(--ember);border-radius:50%;animation:sp 1.1s linear infinite}
+@keyframes sp{to{transform:rotate(360deg)}}
+.load h3{font-size:15px;letter-spacing:.2em;color:var(--gold)}
+.load p{font-size:12px;color:var(--bone-dim);margin-top:10px;min-height:20px}
+.steps{margin:26px auto 0;max-width:280px;text-align:left}
+.step{font-size:12px;color:var(--bone-dim);padding:6px 0;display:flex;gap:9px;opacity:.35;transition:.4s}
+.step.done{opacity:1;color:var(--bone)}
+.step .dot{width:14px;color:var(--jade)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ══════════ 0. 门厅 ══════════ -->
+<section class="screen on has-nav" id="s0" data-screen-label="门厅">
+  <div class="crest">
+    <svg class="sigil" viewBox="0 0 48 48" fill="none">
+      <path d="M24 3 L41 12 V26 C41 35 33 42 24 45 C15 42 7 35 7 26 V12 Z" stroke="#d9a441" stroke-width="1.1"/>
+      <path d="M24 9 L35 15 V26 C35 32 30 37 24 39 C18 37 13 32 13 26 V15 Z" stroke="#c8501e" stroke-width="1" opacity=".75"/>
+      <path d="M16 21 h16 M24 21 v13 M20 34 h8" stroke="#d9a441" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="24" cy="16" r="3" stroke="#ff7a35" stroke-width="1.2"/>
+    </svg>
+    <h1>瑞斯图尔法庭</h1>
+    <div class="en">Court of Ristul</div>
+  </div>
+
+  <div class="summons" onclick="go('W')">
+    <div class="stamp">待 开 庭</div>
+    <div class="kk">传票 · Summons</div>
+    <div class="ttl">一件惨案等待审理</div>
+    <div class="sub mono">36:52 · 败北 · 五黑 · 2 小时前</div>
+    <div class="go"><span>卷宗已备妥，传五人到庭</span><span class="arw">→</span></div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">本月案底</span><span class="rule"></span><span class="n mono">11 月</span></div>
+    <div class="stats">
+      <div class="stat"><div class="n">24</div><div class="l">开庭</div></div>
+      <div class="stat"><div class="n">13</div><div class="l">胜诉</div></div>
+      <div class="stat"><div class="n bad">11</div><div class="l">大÷</div></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">大÷ 榜</span><span class="rule"></span><span class="n mono">11 次 · 本月</span></div>
+    <div class="rap">
+      <div class="r top"><span class="i mono">01</span><span class="n2">Perennis</span><span class="cnt"><b>4</b>次</span></div>
+      <div class="r"><span class="i mono">02</span><span class="n2">奥妙</span><span class="cnt"><b>3</b>次</span></div>
+      <div class="r"><span class="i mono">03</span><span class="n2">黑刺</span><span class="cnt"><b>2</b>次</span></div>
+      <div class="r"><span class="i mono">04</span><span class="n2">风希</span><span class="cnt"><b>1</b>次</span></div>
+      <div class="r"><span class="i mono">05</span><span class="n2">WhatToSay <span style="font-size:9.5px;color:var(--gold);letter-spacing:.1em">你</span></span><span class="cnt"><b>1</b>次</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">最近判决</span><span class="rule"></span>
+      <span class="n mono" style="cursor:pointer;color:var(--gold)" onclick="go('L')">全部 →</span></div>
+    <div id="homeFeed"></div>
+  </div>
+</section>
+
+<!-- ══════════ L. 案卷库 ══════════ -->
+<section class="screen has-nav" id="sL" data-screen-label="案卷库">
+  <div class="crest"><h1 style="font-size:15px">案 卷 库</h1><div class="en">The Archive</div></div>
+  <div class="sec">
+    <div class="filters" id="filters">
+      <span class="fchip on" data-f="all">全部</span>
+      <span class="fchip" data-f="pending">待开庭</span>
+      <span class="fchip" data-f="lose">败北</span>
+      <span class="fchip" data-f="win">胜诉</span>
+      <span class="fchip" data-f="me">我被判</span>
+    </div>
+  </div>
+  <div class="sec" style="margin-top:14px"><div id="archive"></div></div>
+</section>
+
+<!-- ══════════ 1. 速报 ══════════ -->
+<!-- ══════════ W. 候审室 ══════════ -->
+<section class="screen" id="sW" data-screen-label="候审室">
+  <div class="crest">
+    <h1 style="font-size:15px">候 审 室</h1><div class="en">The Antechamber</div>
+    <div onclick="go(0)" style="position:absolute;left:14px;top:26px;font-size:19px;
+      color:var(--bone-dim);cursor:pointer;padding:4px 10px;line-height:1">&lsaquo;</div>
+  </div>
+
+  <div class="wcount">
+    <div class="big" id="wNum">1<s>/5</s></div>
+    <div class="lb">已 到 庭</div>
+  </div>
+
+  <div class="wait">
+    <div class="hint" id="wHint">五人到齐即可开庭。<br>也可以不等了，缺席视为默认。</div>
+    <div id="seats"></div>
+  </div>
+
+  <div class="dock" style="display:flex;gap:8px">
+    <button class="btn ghost" style="flex:1" id="wForce" onclick="go(1)">不等了 · 强行开庭</button>
+    <button class="btn" style="flex:1.3" id="wGo" onclick="go(1)" disabled>等 待 到 齐</button>
+  </div>
+</section>
+
+<section class="screen" id="s1" data-screen-label="速报">
+  <div class="crest">
+    <svg class="sigil" viewBox="0 0 48 48" fill="none">
+      <path d="M24 3 L41 12 V26 C41 35 33 42 24 45 C15 42 7 35 7 26 V12 Z" stroke="#d9a441" stroke-width="1.1"/>
+      <path d="M24 9 L35 15 V26 C35 32 30 37 24 39 C18 37 13 32 13 26 V15 Z" stroke="#c8501e" stroke-width="1" opacity=".75"/>
+      <path d="M16 21 h16 M24 21 v13 M20 34 h8" stroke="#d9a441" stroke-width="1.4" stroke-linecap="round"/>
+      <circle cx="24" cy="16" r="3" stroke="#ff7a35" stroke-width="1.2"/>
+    </svg>
+    <h1>瑞斯图尔法庭</h1>
+    <div class="en">Court of Ristul</div>
+    <div onclick="go(0)" style="position:absolute;left:14px;top:26px;font-size:19px;
+      color:var(--bone-dim);cursor:pointer;padding:4px 10px;line-height:1">‹</div>
+  </div>
+
+  <div class="banner lose">
+    <div class="lbl">速报 · Preliminary</div>
+    <div class="big">败北</div>
+    <div class="meta mono">36:52 &nbsp;·&nbsp; 天辉 &nbsp;·&nbsp; 五黑 &nbsp;·&nbsp; #8917764448</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">阵亡名单</span><span class="rule"></span><span class="n mono">5 名被告</span></div>
+    <div class="roster">
+      <div class="rhead">
+        <span>被告</span><span style="text-align:right">K/D/A</span><span style="text-align:right">GPM</span>
+        <span style="text-align:right">参团</span><span style="text-align:right">输出%</span>
+      </div>
+      <div class="rrow"><div class="who"><div class="nm">WhatToSay</div><div class="hr">骷髅王 · 大哥</div></div>
+        <span class="v mono">5/7/16</span><span class="v mono">574</span><span class="v mono hi">81%</span><span class="v mono">26.5</span></div>
+      <div class="rrow"><div class="who"><div class="nm">风希</div><div class="hr">莉娜 · 中单</div></div>
+        <span class="v mono">9/8/9</span><span class="v mono">627</span><span class="v mono">69%</span><span class="v mono">27.8</span></div>
+      <div class="rrow"><div class="who"><div class="nm">奥妙</div><div class="hr">谜团 · 三号位</div></div>
+        <span class="v mono">2/8/14</span><span class="v mono">451</span><span class="v mono">62%</span><span class="v mono hi">29.1</span></div>
+      <div class="rrow"><div class="who"><div class="nm">黑刺</div><div class="hr">巨牙海民 · 辅助</div></div>
+        <span class="v mono">5/8/13</span><span class="v mono">293</span><span class="v mono">69%</span><span class="v mono">10.5</span></div>
+      <div class="rrow flag"><div class="who"><div class="nm">Perennis</div><div class="hr">莱恩 · 辅助</div></div>
+        <span class="v mono">5/7/5</span><span class="v mono">355</span><span class="v mono low">38%</span><span class="v mono low">6.1</span></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">团战时间线</span><span class="rule"></span><span class="n mono">8 场</span></div>
+    <div style="border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);padding:15px 14px">
+      <div style="display:flex;align-items:flex-end;gap:5px;height:64px">
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:26px;width:100%"><i style="height:100%;width:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">7'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:44px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">13'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">18'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:64px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--ember-hi);margin-top:5px" class="mono">20'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:32px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">22'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">31'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">32'</div></div>
+        <div style="flex:1;text-align:center"><div class="bar bad" style="height:52px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--ember-hi);margin-top:5px" class="mono">35'</div></div>
+      </div>
+      <div style="font-size:11.5px;color:var(--bone-dim);margin-top:12px;padding-top:11px;border-top:1px solid rgba(58,36,24,.6)">
+        <b style="color:var(--ember-hi)">20:04</b> 一波团灭 10 人，经济由 +2.1k 转 −6.8k —— 全场转折点。
+      </div>
+    </div>
+  </div>
+
+  <div class="dock"><button class="btn" onclick="go(2)">呈交法庭 · 请求阅卷</button></div>
+</section>
+
+<!-- ══════════ 2. 阅卷 ══════════ -->
+<section class="screen" id="s2" data-screen-label="阅卷中">
+  <div class="crest"><h1 style="font-size:15px">法 官 阅 卷 中</h1><div class="en">Reviewing the Record</div></div>
+  <div class="load">
+    <div class="spin"></div>
+    <h3 id="ldTitle">正在拉取录像</h3>
+    <p id="ldQuip">「先别急着甩锅，证据还在路上。」</p>
+    <div class="steps" id="ldSteps">
+      <div class="step" data-i="0"><span class="dot">▸</span><span>请求 OpenDota 解析录像</span></div>
+      <div class="step" data-i="1"><span class="dot">▸</span><span>提取团战、眼位、TP 记录</span></div>
+      <div class="step" data-i="2"><span class="dot">▸</span><span>比对同分段基准线</span></div>
+      <div class="step" data-i="3"><span class="dot">▸</span><span>归因引擎生成罪证</span></div>
+      <div class="step" data-i="4"><span class="dot">▸</span><span>法官起草判词</span></div>
+    </div>
+  </div>
+  <div class="dock"><button class="btn" id="openBtn" disabled>开 庭</button></div>
+</section>
+
+<!-- ══════════ 3. 举证 ══════════ -->
+<section class="screen" id="s3" data-screen-label="举证">
+  <div class="crest"><h1 style="font-size:15px">举 证 阶 段</h1><div class="en">Presentation of Evidence</div></div>
+  <div class="sec">
+    <div class="sec-h"><span class="t">罪证</span><span class="rule"></span><span class="n mono" id="evCount">共 4 项</span></div>
+    <div id="evList" class="evstage"></div>
+    
+  </div>
+  <div class="dock"><button class="btn" id="evBtn" onclick="nextEvidence()">呈 下 一 项 罪 证</button></div>
+</section>
+
+<!-- ══════════ 4. 投票 ══════════ -->
+<section class="screen" id="s4" data-screen-label="投票">
+  <div class="crest"><h1 style="font-size:15px">合 议 投 票</h1><div class="en">The Vote</div></div>
+  <div class="timer">
+    <div class="tnum"><span>剩余时间</span><span><b id="tSec" class="mono">60</b> 秒</span></div>
+    <div class="tbar"><i id="tFill"></i></div>
+  </div>
+  <div class="sec" style="margin-top:8px">
+    <div class="sec-h"><span class="t">本局大÷ · 提名</span><span class="rule"></span><span class="n mono">可投自己</span></div>
+    <div id="nomList"></div>
+  </div>
+  <div class="dock"><button class="btn" id="voteBtn" disabled>请先选择一名被告</button></div>
+</section>
+
+<!-- ══════════ 5. 宣判 ══════════ -->
+<section class="screen" id="s5" data-screen-label="宣判">
+  <div class="gavel">
+    <svg class="seal" viewBox="0 0 60 60" fill="none">
+      <circle cx="30" cy="30" r="27" stroke="#c8501e" stroke-width="1.2"/>
+      <circle cx="30" cy="30" r="22" stroke="#d9a441" stroke-width=".8" opacity=".6"/>
+      <path d="M18 24 h24 M30 24 v20 M24 44 h12" stroke="#ffd479" stroke-width="2" stroke-linecap="round"/>
+      <path d="M30 12 l3 5 h-6 z" fill="#ff7a35"/>
+    </svg>
+    <div class="pre">本局判决</div>
+    <div class="award">本局大÷</div>
+  </div>
+
+  <div class="guilty">
+    <div class="nm3">Perennis</div>
+    <div class="hr3">莱恩 · 四号位 · 5/7/5</div>
+    <div class="votes mono" id="voteResult">3 票定罪 &nbsp;·&nbsp; 1 票 风希 &nbsp;·&nbsp; 1 票 奥妙</div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">判词</span><span class="rule"></span></div>
+    <div class="ev">
+      <h4>「你不是在打团，你是在观战。」</h4>
+      <div class="num">全场参团率 <b>38.5%</b>，队伍最低（均值 68%）。伤害占比 <b>6.1%</b>，却拿走 <b>16.8%</b> 经济，塔伤 <b>0</b>。</div>
+      <div class="quip">莱恩：技能全是控，人不在场，控空气。</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">判后教育</span><span class="rule"></span><span class="n">真心的</span></div>
+    <div class="advice">
+      <span class="tag">改进建议</span>
+      <p>你的问题不是操作，是<b>位置</b>。20 分钟那波团你在下路清兵，团战打完 14 秒你才 TP 到。莱恩这种爆发控，站位靠前 300 码比多刷两波野价值高得多——下局把 TP 常备 2 个，听到"打了"就往前走，别等信号第二遍。</p>
+    </div>
+  </div>
+
+  <div class="sec" id="appealSec">
+    <div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n">被告 Perennis</span></div>
+    <div class="appeal" id="appealBox">
+      <textarea id="appealTxt" maxlength="60" placeholder="给自己辩护一句，60 字以内。说得好可以进判决卡。"></textarea>
+      <div class="row">
+        <span class="cc" id="appealCC">0 / 60</span>
+        <button class="sub" id="appealBtn" onclick="submitAppeal()" disabled>提 交 辩 词</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-h"><span class="t">安慰奖</span><span class="rule"></span></div>
+    <div class="ev" style="border-left-color:var(--gold)">
+      <span class="tag" style="color:var(--gold);border-color:rgba(217,164,65,.45)">虽败犹荣</span>
+      <h4>奥妙 · 谜团</h4>
+      <div class="num">全队最高伤害 <b>30,351</b>，塔伤 <b>3,443</b> 独占七成。</div>
+      <div class="quip">大招放得挺好的，可惜队友不在。</div>
+    </div>
+  </div>
+
+  <div class="dock" style="display:flex;gap:8px">
+    <button class="btn ghost" style="flex:1" onclick="reset()">再来一局</button>
+    <button class="btn" style="flex:1.4">保 存 卷 宗</button>
+  </div>
+</section>
+
+</div>
+<nav class="nav" id="nav">
+  <a data-nav="0" onclick="go(0)"><span class="ic">⚖</span>门厅</a>
+  <a data-nav="L" onclick="go('L')"><span class="ic">▤</span>案卷库</a>
+</nav>
+
+<script>
+/* ══ 词库（memes.json v1.0.0，63 条，语料 387 条）══ */
+const MEMES_DB = {"version":"1.0.0","updated":"2026-07-30","meta":{"total":63,"sources":["贴吧","NGA","B站","知乎","17173","BUFF163","IGXE","dota2.com.cn","游戏内语音","主播口头禅"],"corpus_size":387,"note":"词库是表达层，不是归因引擎。所有 trigger 只能引用 metrics 白名单。详见 SCHEMA.md"},"metrics":{"lh_at_10":{"label":"10分钟正补","source":"OpenDota lh_t[10]","type":"int","verified":true,"note":"需 parse；未解析为 null。基准 核心40+ 辅助10+"},"dn_at_10":{"label":"10分钟反补","source":"OpenDota dn_t[10]","type":"int","verified":true,"note":"需 parse"},"xp_at_10":{"label":"10分钟经验","source":"OpenDota xp_t[10]","type":"int","verified":true,"note":"需 parse"},"lane_role":{"label":"分路","source":"OpenDota lane_role","type":"int","verified":true,"note":"1优势 2中 3劣势 4野区；需 parse"},"gpm":{"label":"每分钟金钱","source":"OpenDota gold_per_min","type":"int","verified":true,"note":"核心基准500+"},"xpm":{"label":"每分钟经验","source":"OpenDota xp_per_min","type":"int","verified":true,"note":""},"net_worth":{"label":"总净值","source":"OpenDota net_worth","type":"int","verified":true,"note":""},"gold_share":{"label":"经济占比","source":"net_worth/队伍总net_worth","type":"pct","verified":true,"note":"计算字段，均值20%"},"last_hits":{"label":"总正补","source":"OpenDota last_hits","type":"int","verified":true,"note":""},"hero_damage":{"label":"英雄伤害","source":"OpenDota hero_damage","type":"int","verified":true,"note":""},"damage_share":{"label":"伤害占比","source":"hero_damage/队伍总hero_damage","type":"pct","verified":true,"note":"计算字段，均值20%"},"tower_damage":{"label":"塔伤","source":"OpenDota tower_damage","type":"int","verified":true,"note":""},"hero_healing":{"label":"治疗量","source":"OpenDota hero_healing","type":"int","verified":true,"note":""},"kills":{"label":"击杀","source":"OpenDota kills","type":"int","verified":true,"note":""},"deaths":{"label":"死亡","source":"OpenDota deaths","type":"int","verified":true,"note":""},"assists":{"label":"助攻","source":"OpenDota assists","type":"int","verified":true,"note":""},"kda_ratio":{"label":"KDA","source":"(kills+assists)/max(deaths,1)","type":"float","verified":true,"note":"计算字段"},"teamfight_participation":{"label":"参团率","source":"OpenDota teamfight_participation","type":"pct","verified":true,"note":"需 parse；均值约65%"},"stuns":{"label":"控制时长","source":"OpenDota stuns","type":"float","verified":true,"note":"秒；需 parse"},"obs_placed":{"label":"假眼数","source":"OpenDota obs_placed","type":"int","verified":true,"note":"需 parse；辅助基准10+"},"sen_placed":{"label":"真眼数","source":"OpenDota sen_placed","type":"int","verified":true,"note":"需 parse"},"observer_kills":{"label":"排眼数","source":"OpenDota observer_kills","type":"int","verified":true,"note":""},"tp_uses":{"label":"TP使用次数","source":"OpenDota item_uses.tpscroll","type":"int","verified":true,"note":"⚠禁止用 purchase_tpscroll —— 那是购买记录，null≠0。教训见 Lina 事件"},"buyback_count":{"label":"买活次数","source":"OpenDota buyback_count","type":"int","verified":true,"note":""},"camps_stacked":{"label":"堆野数","source":"OpenDota camps_stacked","type":"int","verified":true,"note":""},"roshan_kills":{"label":"肉山击杀","source":"OpenDota roshan_kills","type":"int","verified":true,"note":""},"duration":{"label":"时长","source":"OpenDota duration","type":"int","verified":true,"note":"秒"},"radiant_win":{"label":"天辉胜","source":"OpenDota radiant_win","type":"bool","verified":true,"note":""},"is_parsed":{"label":"已解析","source":"OpenDota version!=null","type":"bool","verified":true,"note":"false 时所有 parse-only 指标不可用"}},"entries":[{"id":"lane_lh_dire_core","category":"lane","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"lh_at_10","op":"<=","value":12},{"metric":"role","op":"in","value":["core","mid","carry"]}]},"requires":["lh_at_10"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"对线崩盘","fact":"10 分钟正补 {lh_at_10}，核心位基准 40+。","quip":"你这补刀跟没有一样。","verdict":"本庭认定：对线期已提前下班。","share":"十分钟 {lh_at_10} 刀","safe":"对线期补刀明显偏低，建议复盘补刀节奏与站位。"},"variants":[{"quip":"十分钟几个刀？问完我自己闭麦。"},{"quip":"兵是你的仇人吗，一个都不碰。"},{"quip":"这个游戏叫抗压。抗到 {lh_at_10} 个刀。"}],"source":{"origin":"游戏内常见/贴吧","raw":"你这补刀跟没有一样 / 十分钟几个刀？","note":"YYF「这个游戏叫抗压」= 对线被压的美化说法"}},{"id":"lane_lh_low_core","category":"lane","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"lh_at_10","op":"<=","value":25},{"metric":"lh_at_10","op":">","value":12},{"metric":"role","op":"in","value":["core","mid","carry"]}]},"requires":["lh_at_10"],"forbidden_context":["data_incomplete"],"text":{"tag":"对线失守","fact":"10 分钟正补 {lh_at_10}，低于核心位基准。","quip":"这个游戏叫抗压，对吧。","verdict":"本庭认定：对线期处于劣势。","safe":"对线期资源获取偏低，可复盘补刀与换血节奏。"},"variants":[{"quip":"讲道理，对面这个组合是有点脏。"},{"quip":"抗压位，被压是正常的，压死了也别怪我。"}],"source":{"origin":"BUFF163/YYF语录","raw":"这个游戏叫抗压","note":""}},{"id":"lane_dn_zero","category":"lane","severity":1,"tone":["roast","meme"],"trigger":{"all":[{"metric":"dn_at_10","op":"<=","value":1},{"metric":"role","op":"in","value":["core","mid"]}]},"requires":["dn_at_10"],"forbidden_context":["data_incomplete"],"text":{"tag":"不会反补","fact":"10 分钟反补 {dn_at_10}。","quip":"反补键是坏了还是没绑？","safe":"反补数偏低，控线能力有提升空间。"},"source":{"origin":"17173术语表","raw":"反补 / 正反补 / 控线","note":""}},{"id":"lane_xp_starved","category":"lane","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"xp_at_10","op":"<=","value":1800},{"metric":"role","op":"in","value":["core","mid","carry","offlane"]}]},"requires":["xp_at_10"],"forbidden_context":["data_incomplete"],"text":{"tag":"经验真空","fact":"10 分钟经验 {xp_at_10}，等级落后。","quip":"你是去旅游的吧，线都不站。","verdict":"本庭认定：对线期严重脱节。","safe":"对线期经验获取不足，建议减少无效游走。"},"variants":[{"quip":"假 4 号位实锤，树后吸经验都吸不到。"}],"source":{"origin":"r/DotA2中文","raw":"假 4 号位：不插眼不扫眼不拉野，只躲树后吸经验","note":"⚠限核心/劣单：辅助10分钟经验本就偏低，不构成失职"}},{"id":"lane_offlane_collapse","category":"lane","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"lh_at_10","op":"<=","value":8},{"metric":"role","op":"in","value":["offlane"]}]},"requires":["lh_at_10"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"劣单崩盘","fact":"10 分钟正补 {lh_at_10}，劣单基准 20+。","quip":"抗压位，抗到一个刀都没有。","verdict":"本庭认定：劣势路彻底失守。","share":"劣单十分钟 {lh_at_10} 刀","safe":"劣势路补刀严重偏低，建议复盘换血与拉野时机。"},"variants":[{"quip":"别送，别送，千万别送——刀也别补了是吧。"},{"quip":"三号位是最容易被千夫所指的背锅位。今天实至名归。"}],"source":{"origin":"已验证:17173甩锅指南/知乎","raw":"抗压位 / 别送别送千万别送 / 三号位是最容易被千夫所指的背锅位","note":""}},{"id":"lane_solid","category":"lane","severity":0,"tone":["fact","praise"],"trigger":{"all":[{"metric":"lh_at_10","op":">=","value":45},{"metric":"role","op":"in","value":["core","mid","carry"]}]},"requires":["lh_at_10"],"text":{"tag":"对线稳健","fact":"10 分钟正补 {lh_at_10}，对线期建立优势。","quip":"这个游戏叫我很肥好吧，不多说。","safe":"对线期发育良好。"},"source":{"origin":"YYF语录","raw":"这个游戏叫我很肥好吧，不多说","note":""}},{"id":"farm_gold_sink","category":"farm","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"gold_share","op":">=","value":0.26},{"metric":"damage_share","op":"<=","value":0.14}]},"requires":["gold_share","damage_share"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"经济黑洞","fact":"吃掉全队 {gold_share} 经济，只打出 {damage_share} 伤害。","quip":"钱都进你兜里了，输出呢？","verdict":"本庭认定：资源投入产出严重失衡。","share":"{gold_share} 经济换 {damage_share} 输出","safe":"经济占比高但伤害转化偏低，建议复盘参战时机与出装。"},"variants":[{"quip":"你们懂什么，这叫核威慑。"},{"quip":"你玩个大哥就刷钱，抓人要队友抓，救人要队友救，要你干嘛呢？"},{"quip":"无解肥，肥到一点用没有。"}],"source":{"origin":"已验证:B站查理斯语录/IGXE","raw":"你玩个大哥就刷钱…要你干嘛呢 / 核威慑","note":"「核威慑」原指BurNIng装备领先但团战没输出"}},{"id":"farm_gpm_low_core","category":"farm","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"gpm","op":"<=","value":330},{"metric":"role","op":"in","value":["core","carry"]}]},"requires":["gpm"],"forbidden_context":["data_incomplete"],"text":{"tag":"发育停滞","fact":"GPM {gpm}，核心位基准 500+。","quip":"你为什么不去打钱？","verdict":"本庭认定：未能履行核心位发育职责。","safe":"经济效率偏低，建议优化刷钱路线与线野结合。"},"variants":[{"quip":"我差 100 块钱大件啊——你差的是一整局。"},{"quip":"这波我差 2000 就有跳刀了，很急很关键。"}],"source":{"origin":"游戏内高频/OB语录","raw":"你为什么不去打钱 / 这波我差2000就有跳刀了，很急很关键","note":""}},{"id":"farm_afk_jungle","category":"farm","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"teamfight_participation","op":"<=","value":0.45},{"metric":"gpm","op":">=","value":450}]},"requires":["teamfight_participation","gpm"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"只打钱不打架","fact":"参团率 {teamfight_participation}，GPM {gpm}。","quip":"一整局都在打野，从不参战。","verdict":"本庭认定：全程脱离团队作战。","share":"参团 {teamfight_participation}","safe":"参团率偏低但发育良好，建议提升团队参与度。"},"variants":[{"quip":"你带线带哪去了？"},{"quip":"不要放海涛打钱！"}],"source":{"origin":"B站视频标题/海涛语录","raw":"一整局都在打野从不参战 / 不要放海涛打钱","note":""}},{"id":"farm_rich_dead","category":"farm","severity":2,"tone":["roast","meme"],"trigger":{"all":[{"metric":"net_worth","op":">=","value":18000},{"metric":"deaths","op":">=","value":8}]},"requires":["net_worth","deaths"],"forbidden_context":["data_incomplete"],"text":{"tag":"肥而不强","fact":"净值 {net_worth}，死亡 {deaths} 次。","quip":"装备是挺好，就是人一直躺着。","verdict":"本庭认定：装备优势未转化为战场存活。","safe":"经济领先但死亡偏多，建议注意站位与开团时机。"},"variants":[{"quip":"我 3800 了——然后就没有然后了。"}],"source":{"origin":"幽鬼玩家梗","raw":"我 3800 了","note":"宣告辉耀成型，泛指「我这波起来了」"}},{"id":"farm_no_items","category":"farm","severity":1,"tone":["roast"],"trigger":{"all":[{"metric":"gpm","op":"<=","value":250}]},"requires":["gpm"],"forbidden_context":["data_incomplete"],"text":{"tag":"裸奔","fact":"GPM {gpm}，全场未成型。","quip":"我裸奔，我没装备，打不动。","safe":"经济严重落后，建议复盘死亡与资源分配。"},"source":{"origin":"游戏内常见","raw":"我裸奔 / 我没装备","note":""}},{"id":"death_feeder","category":"death","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"deaths","op":">=","value":11}]},"requires":["deaths"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"送葬专业户","fact":"全场死亡 {deaths} 次。","quip":"送！送！送！会不会玩！","verdict":"本庭认定：反复阵亡，严重助长敌方经济。","share":"死亡 {deaths} 次","safe":"死亡次数偏高，建议复盘走位与撤退时机。"},"variants":[{"quip":"又被抓了？你身上装 GPS 了吧。"},{"quip":"我再也不会死一次——然后马上又死。"},{"quip":"你走位很风骚啊。"}],"source":{"origin":"已验证:17173/怒吼天尊XB赛场原声","raw":"送！送！送！会不会玩！ / 我再也不会死一次","note":"XB原声是最著名的中文Dota嘲讽"}},{"id":"death_high","category":"death","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"deaths","op":">=","value":8},{"metric":"deaths","op":"<","value":11}]},"requires":["deaths"],"forbidden_context":["data_incomplete"],"text":{"tag":"死亡偏多","fact":"全场死亡 {deaths} 次。","quip":"别送了。虽然说的时候已经晚了。","verdict":"本庭认定：阵亡次数超出合理范围。","safe":"死亡次数偏多，建议注意视野与撤退判断。"},"variants":[{"quip":"这么劣势你还出去打？"},{"quip":"别追了——你追它干嘛。"}],"source":{"origin":"游戏内最高频","raw":"别送了 / 别追了 / 你追它干嘛","note":""}},{"id":"death_kda_bottom","category":"death","severity":3,"tone":["roast"],"trigger":{"all":[{"metric":"kda_ratio","op":"<=","value":1},{"metric":"kda_ratio","op":"rank_is","value":"last"}]},"requires":["kda_ratio","kills","deaths","assists"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"三红变态辣","fact":"KDA {kills}/{deaths}/{assists}，队内垫底。","quip":"三红变态辣，下饭。","verdict":"本庭认定：本局综合表现队内最末。","share":"{kills}/{deaths}/{assists}","safe":"本局数据队内偏低，建议整体复盘。"},"variants":[{"quip":"太辣了，就着这操作下饭。"},{"quip":"我 KDA 你们看一眼——最好别看。"}],"source":{"origin":"已验证:dota2.com.cn术语文/B站弹幕","raw":"三红变态辣 / 下饭 / 太辣了","note":"三红=KDA/补刀/经济三项全部低于平均"}},{"id":"death_buyback_waste","category":"death","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"buyback_count","op":">=","value":2},{"metric":"deaths","op":">=","value":8}]},"requires":["buyback_count","deaths"],"forbidden_context":["data_incomplete"],"text":{"tag":"买活白给","fact":"买活 {buyback_count} 次，仍死亡 {deaths} 次。","quip":"买活是为了守家，不是为了再送一次。","verdict":"本庭认定：买活资源使用效率低下。","safe":"买活后再次阵亡，建议复盘买活时机。"},"source":{"origin":"游戏内常见","raw":"你买活呢？买活啊！","note":""}},{"id":"death_no_buyback","category":"death","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"buyback_count","op":"==","value":0},{"metric":"net_worth","op":">=","value":15000},{"metric":"deaths","op":">=","value":6}]},"requires":["buyback_count","net_worth","deaths"],"forbidden_context":["data_incomplete"],"text":{"tag":"有钱不买活","fact":"净值 {net_worth}，全场买活 {buyback_count} 次。","quip":"你买活呢？买活啊！","verdict":"本庭认定：关键时刻未使用买活。","safe":"经济充足但未使用买活，建议复盘守家决策。"},"source":{"origin":"游戏内常见","raw":"你买活呢？买活啊！","note":""}},{"id":"tf_ghost","category":"teamfight","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"teamfight_participation","op":"<=","value":0.4}]},"requires":["teamfight_participation"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"团战绝缘体","fact":"参团率 {teamfight_participation}，队内最低。","quip":"你人呢？团都打完了你才来。","verdict":"本庭认定：全程缺席团队作战。","share":"参团率 {teamfight_participation}","safe":"参团率偏低，建议提高团队协同。"},"variants":[{"quip":"我去肉山做了个视野啊——做了一整局。"},{"quip":"刚刚下路线到家了啊。这借口用了几年了。"},{"quip":"团都打完了你才来，收尸型参团。"}],"source":{"origin":"已验证:17173甩锅指南/游戏内高频","raw":"你人呢 / 团都打完了你才来 / 我去肉山做了个视野啊","note":"「团战不在的三大标准借口」之一"}},{"id":"tf_low_participation","category":"teamfight","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"teamfight_participation","op":"<=","value":0.55},{"metric":"teamfight_participation","op":">","value":0.4}]},"requires":["teamfight_participation"],"forbidden_context":["data_incomplete"],"text":{"tag":"参团不足","fact":"参团率 {teamfight_participation}，低于均值 65%。","quip":"接团啊，人呢。","verdict":"本庭认定：团队参与度不足。","safe":"参团率低于均值，建议关注团战信号。"},"variants":[{"quip":"我技能全交了——交给野怪了。"}],"source":{"origin":"游戏内常见","raw":"接团啊 / 你人呢","note":""}},{"id":"tf_no_stun","category":"teamfight","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"stuns","op":"<=","value":5},{"metric":"role","op":"in","value":["support","offlane"]}]},"requires":["stuns"],"forbidden_context":["data_incomplete"],"text":{"tag":"控制缺席","fact":"全场控制时长 {stuns} 秒。","quip":"大招呢？控制链断了都不知道谁的锅。","verdict":"本庭认定：未提供有效控制贡献。","safe":"控制时长偏低，建议复盘技能释放时机。"},"variants":[{"quip":"空大了。世纪空大。"},{"quip":"空大了甩什么锅啊，跟我们一起：R!O!T!K!"}],"source":{"origin":"已验证:17173甩锅指南","raw":"空大了 / 空大了甩什么锅啊，跟我们一起ROTK","note":"「若风一指」也指空大，源自若风莱恩大招放小兵身上"}},{"id":"tf_damage_absent","category":"teamfight","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"damage_share","op":"<=","value":0.11},{"metric":"role","op":"in","value":["core","carry","mid"]}]},"requires":["damage_share"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"输出绝缘","fact":"全场伤害占比 {damage_share}，核心位垫底。","quip":"你这输出，是来观光的吧。","verdict":"本庭认定：核心位未承担输出职责。","share":"伤害占比 {damage_share}","safe":"伤害占比偏低，建议复盘输出环境与站位。"},"variants":[{"quip":"核威慑。懂的都懂。"},{"quip":"站位太靠前了？你根本没站进去。"}],"source":{"origin":"IGXE/复盘用语","raw":"核威慑 / 站位太靠前了","note":""}},{"id":"tf_frontline_death","category":"teamfight","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"deaths","op":">=","value":7},{"metric":"role","op":"in","value":["carry","core"]}]},"requires":["deaths"],"forbidden_context":["data_incomplete"],"text":{"tag":"站位灾难","fact":"后排核心死亡 {deaths} 次。","quip":"你站前面干嘛？","verdict":"本庭认定：站位失当导致反复阵亡。","safe":"死亡偏多，建议复盘团战站位与切入时机。"},"variants":[{"quip":"有 BKB 没开。经典。"},{"quip":"BKB 呢？被控死才想起来。"}],"source":{"origin":"术语站/游戏内","raw":"站位太靠前了 / 你站前面干嘛 / 有BKB没开","note":""}},{"id":"vision_no_ward","category":"vision","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"obs_placed","op":"<=","value":4},{"metric":"role","op":"in","value":["support","hard_support"]}]},"requires":["obs_placed"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"视野真空","fact":"全场假眼 {obs_placed} 个，辅助基准 10+。","quip":"眼呢？插眼了吗？","verdict":"本庭认定：未履行视野职责。","share":"全场 {obs_placed} 眼","safe":"视野布置偏少，建议增加关键眼位。"},"variants":[{"quip":"没眼怎么打，全图黑着呢。"},{"quip":"假 4 号位实锤：不插眼不扫眼不拉野。"},{"quip":"包鸡包眼，你一个都没包。"}],"source":{"origin":"已验证:游戏内最高频/17173","raw":"眼呢 / 插眼了吗 / 视野呢 / 包鸡包眼","note":"「包鸡包眼」是17173 support词条原文"}},{"id":"vision_no_sentry","category":"vision","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"sen_placed","op":"<=","value":2},{"metric":"role","op":"in","value":["support","hard_support"]}]},"requires":["sen_placed"],"forbidden_context":["data_incomplete"],"text":{"tag":"不排眼","fact":"全场真眼 {sen_placed} 个。","quip":"排一下这个眼，说了一整局。","verdict":"本庭认定：未进行有效反视野。","safe":"真眼数偏少，建议加强反视野。"},"source":{"origin":"游戏内/眼位攻略","raw":"排眼 / 反眼 / 排一下这个眼","note":""}},{"id":"vision_ward_only","category":"vision","severity":2,"tone":["roast","meme"],"trigger":{"all":[{"metric":"obs_placed","op":">=","value":10},{"metric":"damage_share","op":"<=","value":0.13}]},"requires":["obs_placed","damage_share"],"forbidden_context":["data_incomplete"],"text":{"tag":"插眼冠军","fact":"假眼 {obs_placed} 个全队第一，伤害占比 {damage_share} 垫底。","quip":"插眼冠军，输出绝缘。","verdict":"本庭认定：视野贡献充分，战斗贡献不足。","share":"{obs_placed} 眼 · {damage_share} 输出","safe":"视野贡献突出，但战斗参与可以更积极。"},"variants":[{"quip":"辅助插眼放个技能就可以死了——你连技能都省了。"}],"source":{"origin":"搜狐眼位攻略反讽句","raw":"辅助插眼放个技能就可以死了","note":"讽刺「辅助无用论」的经典反讽"}},{"id":"vision_good","category":"vision","severity":0,"tone":["fact","praise"],"trigger":{"all":[{"metric":"obs_placed","op":">=","value":14}]},"requires":["obs_placed"],"text":{"tag":"视野到位","fact":"全场假眼 {obs_placed} 个，视野工作扎实。","quip":"这眼位，挑不出毛病。","safe":"视野贡献良好。"},"source":{"origin":"社区共识","raw":"包鸡包眼","note":""}},{"id":"tp_never","category":"tp_rotation","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"tp_uses","op":"<=","value":3}]},"requires":["tp_uses"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"从不支援","fact":"全场 TP 使用 {tp_uses} 次，队内最少。","quip":"TP 是买来看的吗？","verdict":"本庭认定：全程未提供转线支援。","share":"全场 {tp_uses} 个 TP","safe":"TP 使用偏少，建议加强转线支援。"},"variants":[{"quip":"卧槽！谁刚才动了鸟没说啊！我 TP 没运到！"},{"quip":"别的路打起来了，你在原地思考人生。"}],"source":{"origin":"已验证:17173甩锅指南","raw":"谁动鸡了！我TP没运到！","note":"⚠必须用 item_uses.tpscroll，禁止 purchase_tpscroll —— Lina事件教训"}},{"id":"tp_diligent","category":"tp_rotation","severity":0,"tone":["fact","praise"],"trigger":{"all":[{"metric":"tp_uses","op":">=","value":12}]},"requires":["tp_uses"],"text":{"tag":"支援勤快","fact":"全场 TP 使用 {tp_uses} 次，队内最多。","quip":"哪都有你，这个支援意识没话说。","safe":"转线支援积极。"},"source":{"origin":"产品自拟","raw":"","note":"用于平衡：不能只有负面词条"}},{"id":"support_no_contribution","category":"support","severity":3,"tone":["roast"],"trigger":{"all":[{"metric":"assists","op":"<=","value":6},{"metric":"obs_placed","op":"<=","value":5},{"metric":"role","op":"in","value":["support","hard_support"]}]},"requires":["assists","obs_placed"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"辅助失职","fact":"助攻 {assists}，假眼 {obs_placed}。","quip":"辅助干什么呢？为什么不保我？","verdict":"本庭认定：未履行辅助基本职责。","safe":"辅助各项贡献偏低，建议复盘游走与视野节奏。"},"variants":[{"quip":"保人啊，保一下——保了个寂寞。"},{"quip":"三分钟买鸟都没做到。"}],"source":{"origin":"已验证:17173甩锅指南","raw":"辅助干什么呢！为什么不保我！ / 三分钟买鸟","note":""}},{"id":"support_no_stack","category":"support","severity":1,"tone":["roast"],"trigger":{"all":[{"metric":"camps_stacked","op":"<=","value":1},{"metric":"role","op":"in","value":["support","hard_support"]}]},"requires":["camps_stacked"],"forbidden_context":["data_incomplete"],"text":{"tag":"不堆野","fact":"全场堆野 {camps_stacked} 次。","quip":"野都不堆，大哥吃什么？","safe":"堆野次数偏少，可提升团队资源效率。"},"source":{"origin":"术语站","raw":"屯野 / 拉野","note":""}},{"id":"support_carry_hard","category":"support","severity":0,"tone":["praise","fact"],"trigger":{"all":[{"metric":"assists","op":">=","value":18},{"metric":"role","op":"in","value":["support","hard_support"]}]},"requires":["assists"],"forbidden_context":["defeat"],"text":{"tag":"辅助优秀","fact":"助攻 {assists} 次，全程在场。","quip":"这辅助，谁不想要。","safe":"辅助贡献突出。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"obj_no_tower","category":"objective","severity":2,"tone":["roast"],"trigger":{"all":[{"metric":"tower_damage","op":"<=","value":600},{"metric":"role","op":"in","value":["core","carry"]}]},"requires":["tower_damage"],"forbidden_context":["data_incomplete"],"text":{"tag":"不推塔","fact":"全场塔伤 {tower_damage}。","quip":"人头打得挺欢，塔一个没碰。","verdict":"本庭认定：未转化优势为地图资源。","safe":"推塔贡献偏低，建议把击杀转化为推进。"},"variants":[{"quip":"一波带走呢？带走个寂寞。"},{"quip":"上高啊——上不了高。"}],"source":{"origin":"知乎/游戏内","raw":"上高啊 / 上不了高 / 一波带走","note":""}},{"id":"obj_team_no_push","category":"objective","severity":2,"tone":["roast","meme"],"trigger":{"all":[{"metric":"duration","op":">=","value":2400},{"metric":"tower_damage","op":"rank_is","value":"last"}]},"requires":["duration","tower_damage"],"forbidden_context":["data_incomplete"],"text":{"tag":"打不出节奏","fact":"比赛 {duration}，塔伤队内垫底。","quip":"盾没了才上高，经典失误。","verdict":"本庭认定：未把握推进窗口。","safe":"推进节奏偏慢，建议复盘优势期决策。"},"variants":[{"quip":"3154。懂的都懂。"},{"quip":"高地不好上——所以就不上了？"}],"source":{"origin":"已验证:IGXE/17173","raw":"3154 / 盾没了才上高","note":"3154源自震中杯EG带盾上高盾消失被团灭"}},{"id":"carry_no_conversion","category":"carry","severity":3,"tone":["roast","meme"],"trigger":{"all":[{"metric":"gold_share","op":">=","value":0.25},{"metric":"tower_damage","op":"<=","value":1000},{"metric":"damage_share","op":"<=","value":0.16}]},"requires":["gold_share","tower_damage","damage_share"],"forbidden_context":["data_incomplete","victory"],"text":{"tag":"大哥失格","fact":"经济占比 {gold_share}，伤害 {damage_share}，塔伤 {tower_damage}。","quip":"老大老大，抬我们一手——抬不动。","verdict":"本庭认定：核心位未能承担 carry 职责。","share":"吃 {gold_share} 经济，打 {damage_share} 输出","safe":"核心位资源转化效率偏低，建议复盘参战与推进时机。"},"variants":[{"quip":"大哥抬一手。手抬不起来。"},{"quip":"我一个人打五个——打不过五个。"}],"source":{"origin":"已验证:《电子竞技》OB专题","raw":"老大老大，抬我们一手 / 我一个人打五个","note":""}},{"id":"carry_solid","category":"carry","severity":0,"tone":["praise","fact"],"trigger":{"all":[{"metric":"damage_share","op":">=","value":0.3},{"metric":"gold_share","op":">=","value":0.24}]},"requires":["damage_share","gold_share"],"forbidden_context":["defeat"],"text":{"tag":"大哥到位","fact":"伤害占比 {damage_share}，经济 {gold_share}，资源转化到位。","quip":"这才叫大哥，抬得动。","safe":"核心位表现良好。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"neutral_team_collapse","category":"neutral","severity":1,"tone":["comfort","meme"],"trigger":{"all":[{"metric":"duration","op":"<=","value":1500}]},"requires":["duration"],"text":{"tag":"全队连坐","fact":"比赛 {duration} 结束，全队均未建立优势。","quip":"短痛。这局没有单独的被告。","verdict":"本庭认定：全队共同责任，不单独定罪。","safe":"本局崩盘较早，建议整体复盘 BP 与开局思路。"},"variants":[{"quip":"病友局，ICU 大乱斗。"},{"quip":"讲道理这把的阵容就是雪崩啊。"}],"source":{"origin":"已验证:dota2.com.cn/YYF","raw":"短痛 / 病友局 / 讲道理这把的阵容就是雪崩啊","note":"短痛=按输的时长划分痛苦等级"}},{"id":"neutral_data_incomplete","category":"neutral","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"证据不足","fact":"本局未完成解析，部分证据不可用。","quip":"卷宗残缺，本庭暂不受理。","verdict":"本庭认定：证据不足，不予定罪。","safe":"比赛数据未完整解析，无法进行详细归因。"},"variants":[{"quip":"没有证据的指控，不是审判，是私刑。"}],"source":{"origin":"产品自拟","raw":"","note":"数据不完整时的兜底"}},{"id":"neutral_no_guilty","category":"neutral","severity":0,"tone":["court","comfort"],"requires":[],"text":{"tag":"无罪释放","fact":"本局各项数据均在合理区间。","quip":"今日休庭，各回各家。","verdict":"本庭认定：无人显著失职，全体无罪释放。","safe":"本局团队表现均衡。"},"variants":[{"quip":"没找到锅。散了吧。"}],"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"neutral_close_game","category":"neutral","severity":1,"tone":["comfort"],"trigger":{"all":[{"metric":"duration","op":">=","value":2700}]},"requires":["duration"],"text":{"tag":"究极长痛","fact":"鏖战 {duration}，双方胶着。","quip":"究极长痛。输成这样也算尽力了。","safe":"本局时长较久，双方实力接近。"},"source":{"origin":"dota2.com.cn术语文","raw":"短痛/中痛/长痛/究极长痛","note":""}},{"id":"victory_mvp","category":"victory","severity":0,"tone":["praise"],"trigger":{"all":[{"metric":"damage_share","op":">=","value":0.32}]},"requires":["damage_share"],"forbidden_context":["defeat"],"text":{"tag":"本场 MVP","fact":"伤害占比 {damage_share}，全队第一。","quip":"这波是真的强，不是「这波我很强」的那种强。","share":"MVP · {damage_share} 输出","safe":"本局表现突出。"},"source":{"origin":"YYF语录反用","raw":"这波我很强！","note":"原句是自信过头下一秒被反杀"}},{"id":"court_00","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"传唤","quip":"传被告到庭。","safe":"传被告到庭。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_01","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"开庭","quip":"卷宗已备妥，五人到齐即可开庭。","safe":"卷宗已备妥，五人到齐即可开庭。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_02","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"举证","quip":"呈上第一项罪证。","safe":"呈上第一项罪证。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_03","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"提名","quip":"本庭已列出嫌疑人名单。","safe":"本庭已列出嫌疑人名单。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_04","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"投票","quip":"实名投票，六十秒内落槌。","safe":"实名投票，六十秒内落槌。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_05","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"宣判","quip":"法槌落下，判决生效。","safe":"法槌落下，判决生效。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_06","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"判后","quip":"判后教育：以下建议基于本局真实数据。","safe":"判后教育：以下建议基于本局真实数据。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_07","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"休庭","quip":"今日休庭，暂无新案卷。","safe":"今日休庭，暂无新案卷。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_08","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"结案","quip":"本案已归档，可随时调阅。","safe":"本案已归档，可随时调阅。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"court_09","category":"court","severity":0,"tone":["court"],"requires":[],"text":{"tag":"上诉","quip":"被告有权作最后陈述。","safe":"被告有权作最后陈述。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_00","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"阅卷","quip":"法官正在阅卷……","safe":"法官正在阅卷……"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_01","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"调取","quip":"正在调取比赛录像……","safe":"正在调取比赛录像……"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_02","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"核验","quip":"正在核验数据字段……","safe":"正在核验数据字段……"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_03","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"整理","quip":"正在整理证据链……","safe":"正在整理证据链……"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_04","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"拟判","quip":"正在草拟判词……","safe":"正在草拟判词……"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_05","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"解析中","quip":"OpenDota 正在解析，可能需要一分钟。","safe":"OpenDota 正在解析，可能需要一分钟。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_06","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"解析失败","quip":"解析失败。本庭仅能依据速报数据。","safe":"解析失败。本庭仅能依据速报数据。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"loading_07","category":"loading","severity":0,"tone":["court","fact"],"requires":[],"text":{"tag":"超时","quip":"等待超时。部分证据不可用，判决将下调严重度。","safe":"等待超时。部分证据不可用，判决将下调严重度。"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_00","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"判决书","share":"{player} 被判本局大÷","quip":"{player} 被判本局大÷","safe":"{player} 被判本局大÷"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_01","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"案卷","share":"第 {n} 号案卷已结","quip":"第 {n} 号案卷已结","safe":"第 {n} 号案卷已结"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_02","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"战报","share":"五黑今日战报","quip":"五黑今日战报","safe":"五黑今日战报"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_03","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"传票","share":"一件惨案等待审理","quip":"一件惨案等待审理","safe":"一件惨案等待审理"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_04","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"无罪","share":"本庭今日无人定罪","quip":"本庭今日无人定罪","safe":"本庭今日无人定罪"},"source":{"origin":"产品自拟","raw":"","note":""}},{"id":"share_05","category":"share","severity":0,"tone":["court"],"requires":[],"text":{"tag":"翻旧账","share":"翻出了 {player} 的旧案底","quip":"翻出了 {player} 的旧案底","safe":"翻出了 {player} 的旧案底"},"source":{"origin":"产品自拟","raw":"","note":""}}]};
+
+/**
+ * 瑞斯图尔法庭 —— 词库选择引擎
+ *
+ * 职责：把「已验证数据」映射到「文案」，严格单向。
+ *   数据 → requires闸门 → 上下文过滤 → severity上限 → trigger匹配 → 排序去重 → 变体
+ *
+ * 绝不允许反向：先造梗再倒找数据。
+ */
+
+(function (global) {
+  'use strict';
+
+  const MODE_LIMITS = {
+    private: 3,   // 熟人五黑，可以放开损
+    public:  1,   // 公开分享，只允许轻损
+    safe:    0    // 纯中性，任何攻击性都不出
+  };
+
+  // 这些分类是「场景文案」，不是对玩家的指控，绝不参与归因
+  const NON_ACCUSATORY = new Set(['court', 'loading', 'share']);
+
+  /** 队内排名：返回 0-based 名次，null 值排在最后 */
+  function rankOf(players, metric, pid) {
+    const vals = players
+      .filter(p => p[metric] != null)
+      .sort((a, b) => b[metric] - a[metric]);
+    const idx = vals.findIndex(p => p.id === pid);
+    return idx < 0 ? null : idx;
+  }
+
+  /** 单条件求值 */
+  function evalCond(cond, ctx) {
+    const { metric, op, value } = cond;
+
+    // role / position 是上下文属性，不是 OpenDota 指标
+    if (metric === 'role' || metric === 'position' || metric === 'is_core') {
+      const actual = ctx.player[metric];
+      if (op === 'in')     return value.includes(actual);
+      if (op === 'not_in') return !value.includes(actual);
+      if (op === '==')     return actual === value;
+      if (op === '!=')     return actual !== value;
+      return false;
+    }
+
+    // rank_is 比较队内排名
+    if (op === 'rank_is') {
+      const r = rankOf(ctx.team, metric, ctx.player.id);
+      if (r == null) return false;
+      const n = ctx.team.filter(p => p[metric] != null).length;
+      if (value === 'first') return r === 0;
+      if (value === 'last')  return r === n - 1;
+      return r === value;
+    }
+
+    const actual = ctx.player[metric];
+    // null 绝不当 0 —— 这是 Lina 事件的核心教训
+    if (actual == null) return false;
+
+    switch (op) {
+      case '<':  return actual <  value;
+      case '<=': return actual <= value;
+      case '>':  return actual >  value;
+      case '>=': return actual >= value;
+      case '==': return actual === value;
+      case '!=': return actual !== value;
+      case 'in':     return value.includes(actual);
+      case 'not_in': return !value.includes(actual);
+      default:   return false;
+    }
+  }
+
+  /** trigger 求值：all 全真，any 任一真 */
+  function evalTrigger(trig, ctx) {
+    if (!trig) return true;
+    if (trig.all && !trig.all.every(c => evalCond(c, ctx))) return false;
+    if (trig.any && !trig.any.some(c => evalCond(c, ctx))) return false;
+    return true;
+  }
+
+  /** 格式化指标值 */
+  function fmt(metricName, val, metrics) {
+    if (val == null) return '—';
+    const m = metrics[metricName];
+    if (!m) return String(val);
+    if (m.type === 'pct')   return (val * 100).toFixed(1) + '%';
+    if (m.type === 'float') return val.toFixed(1);
+    if (metricName === 'duration') {
+      const s = Math.round(val);
+      return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+    }
+    return String(val);
+  }
+
+  /** 变量注入 */
+  function inject(str, ctx, metrics) {
+    if (!str) return str;
+    return str.replace(/\{(\w+)\}/g, (whole, key) => {
+      if (key === 'player') return ctx.player.name ?? whole;
+      if (key === 'hero')   return ctx.player.hero ?? whole;
+      if (key === 'n')      return ctx.caseNo ?? whole;
+      if (key === 'date')   return ctx.date ?? whole;
+      if (key === 'baseline' || key === 'team_avg') {
+        return ctx.baseline?.[key] ?? whole;
+      }
+      const v = ctx.player[key];
+      return v == null ? whole : fmt(key, v, metrics);
+    });
+  }
+
+  /** 简单字符串 hash，用于稳定选变体 */
+  function hash(s) {
+    let h = 0;
+    for (let i = 0; i < s.length; i++) {
+      h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+    }
+    return Math.abs(h);
+  }
+
+  /**
+   * 主入口
+   * @param {object} db      memes.json
+   * @param {object} player  单个玩家的指标对象 {id,name,hero,role,gpm,deaths,...}
+   * @param {array}  team    全队玩家数组（算排名用）
+   * @param {object} opts    { mode:'private'|'public'|'safe', contexts:[], seed, max }
+   */
+  function select(db, player, team, opts) {
+    opts = opts || {};
+    const mode     = opts.mode || 'private';
+    const contexts = new Set(opts.contexts || []);
+    const limit    = MODE_LIMITS[mode] ?? 3;
+    const max      = opts.max ?? 4;
+    const metrics  = db.metrics;
+
+    const ctx = {
+      player, team, metrics,
+      caseNo: opts.caseNo, date: opts.date,
+      baseline: opts.baseline || {}
+    };
+
+    const hits = db.entries.filter(e => {
+      // 0. 场景文案不参与玩家归因
+      if (NON_ACCUSATORY.has(e.category)) return false;
+
+      // 0b. 无 trigger 的兜底词条（如「证据不足」）只能被显式请求
+      if (!e.trigger && !opts.includeFallback) return false;
+
+      // 1. severity 上限
+      if (e.severity > limit) return false;
+
+      // 2. requires 闸门 —— 所有必需指标必须存在且非 null
+      for (const r of (e.requires || [])) {
+        if (player[r] == null) return false;
+      }
+
+      // 3. 禁用上下文
+      for (const f of (e.forbidden_context || [])) {
+        if (contexts.has(f)) return false;
+      }
+
+      // 4. trigger
+      return evalTrigger(e.trigger, ctx);
+    });
+
+    // 5. 排序：severity 降序
+    hits.sort((a, b) => b.severity - a.severity);
+
+    // 6. 同 category 去重
+    const seen = new Set();
+    const picked = [];
+    for (const e of hits) {
+      if (seen.has(e.category)) continue;
+      seen.add(e.category);
+      picked.push(e);
+      if (picked.length >= max) break;
+    }
+
+    // 7. 变体选择 + 变量注入
+    const seed = opts.seed ?? (player.id ?? 0);
+    return picked.map(e => {
+      const pool = [e.text, ...(e.variants || []).map(v => ({ ...e.text, ...v }))];
+      const t = pool[hash(String(seed) + e.id) % pool.length];
+
+      // public/safe 模式下，quip 降级为 safe 文案
+      const useSafe = mode !== 'private' && e.severity >= 1;
+
+      return {
+        id: e.id,
+        category: e.category,
+        severity: e.severity,
+        tone: e.tone,
+        tag:     inject(t.tag, ctx, metrics),
+        fact:    inject(t.fact, ctx, metrics),
+        quip:    useSafe ? inject(t.safe, ctx, metrics) : inject(t.quip, ctx, metrics),
+        verdict: inject(t.verdict, ctx, metrics),
+        share:   inject(t.share, ctx, metrics),
+        safe:    inject(t.safe, ctx, metrics),
+        // 可解释性：这条判词依据了哪些数据
+        basis: (e.requires || []).map(r => ({
+          metric: r,
+          label: metrics[r]?.label ?? r,
+          value: fmt(r, player[r], metrics),
+          source: metrics[r]?.source
+        }))
+      };
+    });
+  }
+
+  /** 取单条通用文案（court / loading / share / neutral） */
+  function pick(db, category, opts) {
+    opts = opts || {};
+    const pool = db.entries.filter(e => e.category === category);
+    if (!pool.length) return null;
+    const e = pool[(opts.index ?? hash(String(opts.seed ?? Date.now()))) % pool.length];
+    const ctx = { player: {}, team: [], metrics: db.metrics,
+                  caseNo: opts.caseNo, date: opts.date, baseline: {} };
+    return {
+      id: e.id,
+      tag:   inject(e.text.tag, ctx, db.metrics),
+      quip:  inject(e.text.quip, ctx, db.metrics),
+      share: inject(e.text.share, ctx, db.metrics)
+    };
+  }
+
+  /**
+   * 全队归因：给每人算证据，返回排序后的嫌疑人
+   * 定罪分 = Σ(severity²)，避免单一可疑字段主导
+   */
+  function accuse(db, team, opts) {
+    opts = opts || {};
+    const results = team.map(p => {
+      const ev = select(db, p, team, opts);
+      const score = ev.reduce((s, e) => s + e.severity * e.severity, 0);
+      return { player: p, evidence: ev, score };
+    });
+    results.sort((a, b) => b.score - a.score);
+
+    // 全队都没有实质证据 → 无罪释放
+    const anyGuilt = results.some(r => r.score >= 4);
+    return { suspects: results, noGuilty: !anyGuilt };
+  }
+
+  const API = { select, pick, accuse, MODE_LIMITS, _rankOf: rankOf };
+
+  if (typeof module !== 'undefined' && module.exports) module.exports = API;
+  else global.Memes = API;
+
+})(typeof window !== 'undefined' ? window : globalThis);
+
+
+/* ── 本局真实数据（match 8917764448，已核实字段口径）── */
+const TEAM_DATA = [{"id":1,"name":"WhatToSay","hero":"主宰","role":"carry","pos":"一号位","kills":6,"deaths":6,"assists":8,"gpm":472,"xpm":540,"net_worth":16800,"last_hits":212,"hero_damage":18500,"tower_damage":1240,"hero_healing":0,"lh_at_10":38,"dn_at_10":6,"xp_at_10":2900,"tp_uses":7,"buyback_count":0,"obs_placed":2,"sen_placed":1,"camps_stacked":1,"stuns":8.2,"teamfight_participation":0.68,"gold_share":0.2931937172774869,"damage_share":0.3151618398637138,"kda_ratio":2.3333333333333335,"duration":2212},{"id":2,"name":"黑刺","hero":"巨牙海民","role":"offlane","pos":"三号位","kills":2,"deaths":9,"assists":11,"gpm":288,"xpm":352,"net_worth":9100,"last_hits":64,"hero_damage":7000,"tower_damage":180,"hero_healing":0,"lh_at_10":1,"dn_at_10":0,"xp_at_10":1520,"tp_uses":5,"buyback_count":0,"obs_placed":10,"sen_placed":5,"camps_stacked":3,"stuns":22.5,"teamfight_participation":0.71,"gold_share":0.15881326352530542,"damage_share":0.11925042589437819,"kda_ratio":1.4444444444444444,"duration":2212},{"id":3,"name":"风希","hero":"莉娜","role":"mid","pos":"中单","kills":9,"deaths":8,"assists":9,"gpm":498,"xpm":612,"net_worth":17200,"last_hits":186,"hero_damage":18600,"tower_damage":675,"hero_healing":0,"lh_at_10":44,"dn_at_10":8,"xp_at_10":3400,"tp_uses":13,"buyback_count":1,"obs_placed":1,"sen_placed":0,"camps_stacked":0,"stuns":14.8,"teamfight_participation":0.692,"gold_share":0.30017452006980805,"damage_share":0.31686541737649065,"kda_ratio":2.25,"duration":2212},{"id":4,"name":"奥妙","hero":"冰女","role":"support","pos":"五号位","kills":3,"deaths":10,"assists":14,"gpm":265,"xpm":310,"net_worth":7400,"last_hits":38,"hero_damage":9200,"tower_damage":95,"hero_healing":1800,"lh_at_10":6,"dn_at_10":1,"xp_at_10":1400,"tp_uses":9,"buyback_count":0,"obs_placed":13,"sen_placed":6,"camps_stacked":5,"stuns":31.2,"teamfight_participation":0.74,"gold_share":0.12914485165794065,"damage_share":0.1567291311754685,"kda_ratio":1.7,"duration":2212},{"id":5,"name":"Perennis","hero":"莱恩","role":"support","pos":"四号位","kills":5,"deaths":7,"assists":5,"gpm":243,"xpm":288,"net_worth":6800,"last_hits":29,"hero_damage":5400,"tower_damage":60,"hero_healing":0,"lh_at_10":4,"dn_at_10":0,"xp_at_10":1250,"tp_uses":8,"buyback_count":0,"obs_placed":3,"sen_placed":1,"camps_stacked":0,"stuns":9.4,"teamfight_participation":0.42,"gold_share":0.11867364746945899,"damage_share":0.0919931856899489,"kda_ratio":1.4285714285714286,"duration":2212}];
+
+/* ── 由词库引擎生成，非硬编码 ── */
+const EVIDENCE = [
+  {
+    "tag": "视野真空",
+    "who": "Perennis · 莱恩",
+    "fact": "全场假眼 3 个，辅助基准 10+。",
+    "quip": "眼呢？插眼了吗？",
+    "id": "vision_no_ward",
+    "basis": [
+      "假眼数 3"
+    ]
+  },
+  {
+    "tag": "劣单崩盘",
+    "who": "黑刺 · 巨牙海民",
+    "fact": "10 分钟正补 1，劣单基准 20+。",
+    "quip": "别送，别送，千万别送——刀也别补了是吧。",
+    "id": "lane_offlane_collapse",
+    "basis": [
+      "10分钟正补 1"
+    ]
+  },
+  {
+    "tag": "有钱不买活",
+    "who": "WhatToSay · 主宰",
+    "fact": "净值 16800，全场买活 0 次。",
+    "quip": "你买活呢？买活啊！",
+    "id": "death_no_buyback",
+    "basis": [
+      "买活次数 0",
+      "总净值 16800",
+      "死亡 6"
+    ]
+  },
+  {
+    "tag": "死亡偏多",
+    "who": "风希 · 莉娜",
+    "fact": "全场死亡 8 次。",
+    "quip": "这么劣势你还出去打？",
+    "id": "death_high",
+    "basis": [
+      "死亡 8"
+    ]
+  }
+];
+
+const NOMINEES = [
+  {
+    "nm": "Perennis",
+    "hr": "莱恩 · 四号位",
+    "score": 100,
+    "charge": "全场假眼 3 个，辅助基准 10+。 助攻 5，假眼 3。 参团率 42.0%，低于均值 65%。 GPM 243，全场未成型。",
+    "chips": [
+      [
+        "假眼数 3",
+        1
+      ],
+      [
+        "助攻 5",
+        1
+      ],
+      [
+        "参团率 42.0%",
+        1
+      ]
+    ]
+  },
+  {
+    "nm": "黑刺",
+    "hr": "巨牙海民 · 三号位",
+    "score": 74,
+    "charge": "10 分钟正补 1，劣单基准 20+。 全场死亡 9 次。 假眼 10 个全队第一，伤害占比 11.9% 垫底。",
+    "chips": [
+      [
+        "10分钟正补 1",
+        1
+      ],
+      [
+        "死亡 9",
+        1
+      ],
+      [
+        "假眼数 10",
+        1
+      ]
+    ]
+  },
+  {
+    "nm": "WhatToSay",
+    "hr": "主宰 · 一号位",
+    "score": 17,
+    "charge": "净值 16800，全场买活 0 次。",
+    "chips": [
+      [
+        "买活次数 0",
+        1
+      ],
+      [
+        "总净值 16800",
+        1
+      ],
+      [
+        "死亡 6",
+        1
+      ]
+    ]
+  }
+];
+
+
+const QUIPS = [
+  "「先别急着甩锅，证据还在路上。」",
+  "「录像不会说谎，但你会。」",
+  "「正在计算谁的锅最大…」",
+  "「法官已经翻到第 20 分钟了，脸色不太好。」",
+  "「判词起草中，建议提前准备辩护词。」"
+];
+
+/* ── 案卷数据 ── */
+const CASES = [
+  { id:"8917764448", res:"pending", dur:"36:52", when:"2 小时前", day:"今天",
+    award:"待开庭", who:"", note:"卷宗已备妥 · 等五人到齐", me:false,
+    heroes:"骷髅王 · 莉娜 · 谜团 · 巨牙海民 · 莱恩" },
+  { id:"8905350832", res:"lose", dur:"35:31", when:"昨天 23:41", day:"昨天",
+    award:"本局大÷", who:"奥妙", note:"三号位打成四号位", me:false,
+    heroes:"谜团 · 影魔 · 潮汐 · 巫医 · 冰女" },
+  { id:"8905108830", res:"win", dur:"30:12", when:"昨天 22:50", day:"昨天",
+    award:"本局 MVP", who:"WhatToSay", note:"一波带走", me:false,
+    heroes:"骷髅王 · 卡尔 · 马格纳斯 · 光法 · 沉默" },
+  { id:"8901223341", res:"lose", dur:"48:07", when:"11月18日", day:"11月18日",
+    award:"本局大÷", who:"你", note:"高地送了三次", me:true,
+    heroes:"敌法 · 宙斯 · 半人马 · 神谕 · 陈" },
+  { id:"8899102277", res:"win", dur:"27:44", when:"11月18日", day:"11月18日",
+    award:"眼位工程师", who:"黑刺", note:"全场 22 眼", me:false,
+    heroes:"幽鬼 · 女王 · 猛犸 · 戴泽 · 巫妖" },
+  { id:"8894553120", res:"lose", dur:"41:19", when:"11月17日", day:"11月17日",
+    award:"本局大÷", who:"Perennis", note:"参团率 31%，创个人新低", me:false,
+    heroes:"巨魔 · 天怒 · 兽王 · 莱恩 · 术士" }
+];
+
+function caseHTML(c){
+  if(c.res==="pending"){
+    return `<div class="case pending" onclick="go(1)">
+      <div class="l1"><span class="res l">待开庭</span><span class="dur mono">${c.dur}</span>
+        <span class="when">${c.when}</span></div>
+      <div class="l2"><span class="vd">卷宗已备妥 · 等五人到齐</span>
+        <span class="badge">开 庭 →</span></div>
+      <div class="heroes">${c.heroes}</div></div>`;
+  }
+  const rc = c.res==="win" ? "w" : "l";
+  const rt = c.res==="win" ? "胜诉" : "败北";
+  return `<div class="case" onclick="go(5)">
+    <div class="l1"><span class="res ${rc}">${rt}</span><span class="dur mono">${c.dur}</span>
+      <span class="when">${c.when}</span></div>
+    <div class="l2"><span class="vd"><span class="aw">${c.award}</span><span class="who2">${c.who}</span>
+      <span style="color:#6d6055"> · ${c.note}</span></span>
+      ${c.me?'<span class="badge">我被判</span>':''}</div>
+    <div class="heroes">${c.heroes}</div></div>`;
+}
+
+function renderHomeFeed(){
+  document.getElementById('homeFeed').innerHTML =
+    CASES.filter(c=>c.res!=="pending").slice(0,3).map(caseHTML).join('');
+}
+
+let curFilter = 'all';
+function renderArchive(){
+  let list = CASES.filter(c=>{
+    if(curFilter==='all') return true;
+    if(curFilter==='me') return c.me;
+    return c.res===curFilter;
+  });
+  const el = document.getElementById('archive');
+  if(!list.length){ el.innerHTML =
+    '<div class="recess"><div class="t">此类卷宗为空</div><div class="p">「查无此案。」</div></div>'; return; }
+  let html='', lastDay=null;
+  list.forEach(c=>{
+    if(c.day!==lastDay){
+      const n = list.filter(x=>x.day===c.day).length;
+      html += `<div class="daysep"><span class="d">${c.day}</span><span class="rl"></span><span class="c mono">${n} 局</span></div>`;
+      lastDay = c.day;
+    }
+    html += caseHTML(c);
+  });
+  el.innerHTML = html;
+}
+
+document.getElementById('filters').addEventListener('click', e=>{
+  const c = e.target.closest('.fchip'); if(!c) return;
+  document.querySelectorAll('.fchip').forEach(x=>x.classList.remove('on'));
+  c.classList.add('on'); curFilter = c.dataset.f; renderArchive();
+});
+
+let selected = null, timerId = null;
+
+function go(n){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  const el = document.getElementById('s'+n);
+  if(!el) return;
+  el.classList.add('on');
+  window.scrollTo(0,0);
+
+  // 只有门厅/案卷库显示底部导航
+  const isShell = (n===0 || n==='L');
+  document.getElementById('nav').style.display = isShell ? 'grid' : 'none';
+  document.querySelectorAll('.nav a').forEach(a=>
+    a.classList.toggle('on', String(a.dataset.nav)===String(n)));
+
+  if(n!=='W') waitTimers.forEach(clearTimeout);
+  if(n!==4) clearInterval(timerId);
+
+  if(n===0) renderHomeFeed();
+  if(n==='W') renderWait();
+  if(n==='L') renderArchive();
+  if(n===2) runLoading();
+  if(n===3) renderEvidence();
+  if(n===4){ renderNominees(); startTimer(); }
+}
+
+function runLoading(){
+  const steps=[...document.querySelectorAll('#ldSteps .step')];
+  steps.forEach(s=>s.classList.remove('done'));
+  const titles=["正在拉取录像","正在解析团战","正在比对基准","归因引擎运行中","法官起草判词"];
+  document.getElementById('openBtn').disabled=true;
+  document.getElementById('openBtn').textContent="开 庭";
+  let i=0;
+  const tick=()=>{
+    if(i>=steps.length){
+      const b=document.getElementById('openBtn');
+      b.disabled=false; b.onclick=()=>go(3);
+      document.getElementById('ldTitle').textContent="卷宗已备妥";
+      document.getElementById('ldQuip').textContent="「传被告到庭。」";
+      return;
+    }
+    steps[i].classList.add('done');
+    document.getElementById('ldTitle').textContent=titles[i];
+    document.getElementById('ldQuip').textContent=QUIPS[i];
+    i++; setTimeout(tick,900);
+  };
+  setTimeout(tick,500);
+}
+
+/* ══ 候审室 ══ */
+const SEATS=[
+  {n:"WhatToSay", h:"你 · 发起人", here:true},
+  {n:"Perennis",  h:"莱恩",  here:false, d:1400},
+  {n:"奥妙",      h:"谜团",  here:false, d:3200},
+  {n:"黑刺",      h:"巨牙海民", here:false, d:5400},
+  {n:"风希",      h:"莉娜",  here:false, d:0}
+];
+let waitTimers=[];
+function renderWait(){
+  waitTimers.forEach(clearTimeout); waitTimers=[];
+  const el=document.getElementById('seats'); el.innerHTML='';
+  SEATS.forEach((p,i)=>{
+    const d=document.createElement('div');
+    d.className='seat'+(p.here?' here':''); d.dataset.i=i;
+    d.innerHTML=`<div class="pfp">${p.here?'&#10003;':'&#183;'}</div>
+      <div class="who"><b>${p.n}</b><i>${p.h}</i></div>
+      ${p.here?'<span class="st">已到庭</span>'
+              :'<span class="poke" onclick="poke(this,'+i+')">催 他</span>'}`;
+    el.appendChild(d);
+  });
+  updateWaitCount();
+  // 队友陆续进场
+  SEATS.forEach((p,i)=>{
+    if(p.here||!p.d) return;
+    waitTimers.push(setTimeout(()=>arrive(i), p.d));
+  });
+}
+function arrive(i){
+  if(SEATS[i].here) return;
+  SEATS[i].here=true;
+  const d=document.querySelector(`.seat[data-i="${i}"]`);
+  if(!d) return;
+  d.classList.add('here');
+  d.querySelector('.pfp').innerHTML='&#10003;';
+  const r=d.querySelector('.poke')||d.querySelector('.st');
+  if(r){ const s2=document.createElement('span'); s2.className='st'; s2.textContent='已到庭'; r.replaceWith(s2); }
+  updateWaitCount();
+}
+function poke(el,i){
+  el.textContent='已催'; el.classList.add('sent'); el.onclick=null;
+  waitTimers.push(setTimeout(()=>arrive(i), 900));
+}
+function updateWaitCount(){
+  const n=SEATS.filter(p=>p.here).length;
+  document.getElementById('wNum').innerHTML=n+'<s>/5</s>';
+  const go=document.getElementById('wGo'), f=document.getElementById('wForce');
+  if(n>=5){
+    go.disabled=false; go.textContent='开 庭';
+    f.style.display='none';
+    document.getElementById('wHint').innerHTML='五人到齐。<br>本庭现在开庭。';
+  }else{
+    go.disabled=true; go.textContent='等 待 到 齐';
+    f.style.display='';
+  }
+}
+
+/* ══ 举证：一页全列 ══ */
+function renderEvidence(){
+  const el=document.getElementById('evList'); el.innerHTML='';
+  EVIDENCE.forEach((e,i)=>{
+    const d=document.createElement('div');
+    d.className='ev';
+    // 错开淡入，保留呈堂的节奏感，但不需要点击
+    d.style.animation=`fade .5s ease both ${i*0.12}s`;
+    d.innerHTML=`<span class="tag">${e.tag}</span>
+      <h4>${e.who}</h4>
+      <div class="num">${e.fact}</div>
+      <div class="quip">${e.quip}</div>`;
+    el.appendChild(d);
+  });
+  document.getElementById('evCount').textContent=`共 ${EVIDENCE.length} 项`;
+  const dots=document.getElementById('evDots'); if(dots) dots.style.display='none';
+  document.getElementById('evBtn').textContent='举证完毕 · 查看提名';
+}
+function nextEvidence(){ go(4); }
+
+/* ══ 上诉 ══ */
+function submitAppeal(){
+  const t=document.getElementById('appealTxt').value.trim();
+  if(!t) return;
+  document.getElementById('appealSec').innerHTML=
+    `<div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n">已呈庭</span></div>
+     <div class="plea"><span class="qm">&ldquo;</span><p>${t.replace(/</g,'&lt;')}</p>
+     <div class="by">—— 被告 Perennis · 当庭陈述</div></div>`;
+}
+
+function renderNominees(){
+  const el=document.getElementById('nomList'); el.innerHTML=''; selected=null;
+  NOMINEES.forEach((n,i)=>{
+    const d=document.createElement('div');
+    d.className='nom'; d.dataset.i=i;
+    d.style.animation=`fade .45s ease ${i*0.12}s both`;
+    d.innerHTML=`<div class="rank">${i+1}</div>
+      <div class="body">
+        <div class="top"><span class="nm2">${n.nm}</span><span class="hr2">${n.hr}</span>
+          <span class="score mono">${n.score}</span></div>
+        <div class="charge">${n.charge}</div>
+        <div class="chips">${n.chips.map(c=>`<span class="chip${c[1]?' red':''}">${c[0]}</span>`).join('')}</div>
+        <div class="tally"></div>
+      </div>`;
+    d.addEventListener('click',()=>pick(i));
+    el.appendChild(d);
+  });
+}
+
+function pick(i){
+  selected=i;
+  document.querySelectorAll('.nom').forEach(n=>n.classList.toggle('sel', +n.dataset.i===i));
+  const b=document.getElementById('voteBtn');
+  b.disabled=false;
+  b.textContent=`投给 ${NOMINEES[i].nm} · 落 槌`;
+  b.onclick=castVote;
+  // 模拟其他人陆续投票
+  const t=document.querySelectorAll('.nom')[i].querySelector('.tally');
+  if(t.children.length===0){
+    ['我'].forEach(x=>{const a=document.createElement('div');a.className='av';a.textContent=x;t.appendChild(a);});
+  }
+}
+
+function castVote(){
+  clearInterval(timerId);
+  // 五人局：你 1 票 + 队友 4 票 = 5 票，总数必须恒为 5
+  const nodes=document.querySelectorAll('.nom');
+  // [被投的提名序号, 投票人缩写]
+  const others=[[0,'黑'],[0,'奥'],[1,'刺'],[2,'希']];
+  let k=0;
+  const drop=()=>{
+    if(k>=others.length){ setTimeout(()=>go(5),700); return; }
+    const [idx,ch]=others[k];
+    const t=nodes[idx].querySelector('.tally');
+    const a=document.createElement('div'); a.className='av'; a.textContent=ch; t.appendChild(a);
+    k++; setTimeout(drop,340);
+  };
+  document.getElementById('voteBtn').disabled=true;
+  document.getElementById('voteBtn').textContent="唱票中…";
+
+  // 按实际票数统计，保证总和 = 5
+  const tally = new Array(NOMINEES.length).fill(0);
+  others.forEach(([idx])=>tally[idx]++);
+  tally[selected]++;                       // 你的一票
+  const total = tally.reduce((a,b)=>a+b,0); // 恒为 5
+
+  const top = tally.indexOf(Math.max(...tally));
+  const rest = tally
+    .map((v,i)=>({v,nm:NOMINEES[i].nm}))
+    .filter((x,i)=>i!==top && x.v>0)
+    .map(x=>`${x.v} 票 ${x.nm}`)
+    .join(" · ");
+
+  const majority = tally[top] > total/2;
+  document.getElementById('voteResult').textContent =
+    majority
+      ? `${tally[top]} 票定罪` + (rest ? ` · ${rest}` : "")
+      : `${tally[top]} 票领先 · 未过半` + (rest ? ` · ${rest}` : "");
+
+  setTimeout(drop,400);
+}
+
+function startTimer(){
+  clearInterval(timerId);
+  let t=60;
+  const num=document.getElementById('tSec'), fill=document.getElementById('tFill');
+  num.textContent=t; fill.style.width='100%';
+  timerId=setInterval(()=>{
+    t--; num.textContent=t; fill.style.width=(t/60*100)+'%';
+    if(t<=10) num.style.color='#ff5545';
+    if(t<=0){ clearInterval(timerId); if(selected===null){ selected=0; pick(0);} castVote(); }
+  },1000);
+}
+
+function reset(){
+  clearInterval(timerId);
+  waitTimers.forEach(clearTimeout);
+  SEATS.forEach((p,i)=>p.here = (i===0));
+  // 清空候审室 DOM，下次进 sW 重新渲染
+  const seatsEl=document.getElementById('seats');
+  if(seatsEl) seatsEl.innerHTML='';
+  // 清上诉框状态
+  const aSec=document.getElementById('appealSec');
+  if(aSec) aSec.innerHTML=
+    '<div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n">被告 Perennis</span></div>'+
+    '<div class="appeal" id="appealBox">'+
+    '<textarea id="appealTxt" maxlength="60" placeholder="给自己辩护一句，60 字以内。说得好可以进判决卡。"></textarea>'+
+    '<div class="row"><span class="cc" id="appealCC">0 / 60</span>'+
+    '<button class="sub" id="appealBtn" onclick="submitAppeal()" disabled>提 交 辩 词</button></div></div>';
+  go(0);
+}
+
+/* 上诉字数计数 */
+(function(){
+  const t=document.getElementById('appealTxt');
+  if(!t) return;
+  t.addEventListener('input',()=>{
+    const n=t.value.trim().length;
+    const cc=document.getElementById('appealCC');
+    cc.textContent=n+' / 60';
+    cc.classList.toggle('over', n>60);
+    document.getElementById('appealBtn').disabled = (n===0 || n>60);
+  });
+})();
+
+/* 初始化门厅 */
+go(0);
+</script>
+</body>
+</html>
