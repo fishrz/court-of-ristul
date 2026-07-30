@@ -197,6 +197,65 @@ def test_start_vote_is_idempotent_and_preserves_deadline(trial_app) -> None:
     assert second.json()["deadline"] == first.json()["deadline"]
 
 
+def test_concurrent_start_vote_claims_once(trial_app, monkeypatch) -> None:
+    client, factory = trial_app
+    trial_id, _ = _open_and_attend(client, factory)
+
+    original_get_trial = trials._get_trial
+    both_loaded = asyncio.Event()
+    loaded = 0
+    settlements = []
+    broadcasts = []
+
+    async def synchronize_initial_loads(session, requested_trial_id):
+        nonlocal loaded
+        trial = await original_get_trial(session, requested_trial_id)
+        loaded += 1
+        if loaded <= 2:
+            if loaded == 2:
+                both_loaded.set()
+            await both_loaded.wait()
+        return trial
+
+    async def record_settlement(requested_trial_id, deadline):
+        settlements.append((requested_trial_id, deadline))
+
+    async def record_broadcast(requested_trial_id, event):
+        broadcasts.append((requested_trial_id, event))
+
+    monkeypatch.setattr(trials, "_get_trial", synchronize_initial_loads)
+    monkeypatch.setattr(trials, "_settle_at_deadline", record_settlement)
+    monkeypatch.setattr(trials.manager, "broadcast", record_broadcast)
+
+    async def start_twice():
+        async with AsyncClient(
+            transport=ASGITransport(app=client.app), base_url="http://test"
+        ) as async_client:
+            return await asyncio.gather(
+                async_client.post(f"/api/trials/{trial_id}/start-vote"),
+                async_client.post(f"/api/trials/{trial_id}/start-vote"),
+            )
+
+    responses = asyncio.run(start_twice())
+
+    async def persisted_deadline() -> datetime | None:
+        async with factory() as session:
+            trial = await session.get(Trial, trial_id)
+            return trial.vote_deadline
+
+    persisted_deadline_value = asyncio.run(persisted_deadline())
+    assert [response.status_code for response in responses] == [200, 200]
+    assert responses[0].json()["deadline"] == responses[1].json()["deadline"]
+    assert persisted_deadline_value is not None
+    assert responses[0].json()["deadline"] == (
+        persisted_deadline_value.replace(tzinfo=UTC).isoformat().replace("+00:00", "Z")
+    )
+    assert len(settlements) == 1
+    assert settlements[0] == (trial_id, persisted_deadline_value.replace(tzinfo=UTC))
+    assert len(broadcasts) == 1
+    assert broadcasts[0] == (trial_id, responses[0].json())
+
+
 def test_tie_uses_precomputed_ai_verdict_and_reports_disagreement(trial_app) -> None:
     client, factory = trial_app
     trial_id, player_ids = _open_and_attend(client, factory, attendee_count=4)

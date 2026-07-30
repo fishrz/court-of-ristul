@@ -7,7 +7,7 @@ from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -207,14 +207,34 @@ async def start_vote(trial_id: int, session: Session) -> dict[str, Any]:
     if not trial.attendances:
         raise HTTPException(status_code=409, detail="no players attended")
     started = _now()
-    trial.status = "voting"
-    trial.vote_started_at = started
-    trial.vote_deadline = started + timedelta(seconds=VOTE_SECONDS)
+    deadline = started + timedelta(seconds=VOTE_SECONDS)
+    claimed = await session.execute(
+        update(Trial)
+        .where(Trial.id == trial_id, Trial.status == trial.status)
+        .values(
+            status="voting",
+            vote_started_at=started,
+            vote_deadline=deadline,
+        )
+        .execution_options(synchronize_session=False)
+    )
     await session.commit()
-    asyncio.create_task(_settle_at_deadline(trial_id, trial.vote_deadline))
+    if claimed.rowcount != 1:
+        session.expire_all()
+        trial = await _get_trial(session, trial_id)
+        if trial.status == "voting" and trial.vote_deadline is not None:
+            return {
+                "type": "vote_start",
+                "deadline": _aware(trial.vote_deadline)
+                .isoformat()
+                .replace("+00:00", "Z"),
+            }
+        raise HTTPException(status_code=409, detail="voting is not ready")
+
+    asyncio.create_task(_settle_at_deadline(trial_id, deadline))
     event = {
         "type": "vote_start",
-        "deadline": trial.vote_deadline.isoformat().replace("+00:00", "Z"),
+        "deadline": deadline.isoformat().replace("+00:00", "Z"),
     }
     await manager.broadcast(trial_id, event)
     return event
