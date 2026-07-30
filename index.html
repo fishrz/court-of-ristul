@@ -363,26 +363,26 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
     <div class="en">Court of Ristul</div>
   </div>
 
-  <div class="summons" onclick="go('W')">
+  <div class="summons" id="summons" onclick="go('W')">
     <div class="stamp">待 开 庭</div>
     <div class="kk">传票 · Summons</div>
     <div class="ttl">一件惨案等待审理</div>
-    <div class="sub mono">36:52 · 败北 · 五黑 · 2 小时前</div>
+    <div class="sub mono" id="summonsSub">36:52 · 败北 · 五黑 · 2 小时前</div>
     <div class="go"><span>卷宗已备妥，传五人到庭</span><span class="arw">→</span></div>
   </div>
 
   <div class="sec">
-    <div class="sec-h"><span class="t">本月案底</span><span class="rule"></span><span class="n mono">11 月</span></div>
+    <div class="sec-h"><span class="t">本月案底</span><span class="rule"></span><span class="n mono" id="statMonth">11 月</span></div>
     <div class="stats">
-      <div class="stat"><div class="n">24</div><div class="l">开庭</div></div>
-      <div class="stat"><div class="n">13</div><div class="l">胜诉</div></div>
-      <div class="stat"><div class="n bad">11</div><div class="l">大÷</div></div>
+      <div class="stat"><div class="n" id="statTrials">24</div><div class="l">开庭</div></div>
+      <div class="stat"><div class="n" id="statWins">13</div><div class="l">胜诉</div></div>
+      <div class="stat"><div class="n bad" id="statGuilty">11</div><div class="l">大÷</div></div>
     </div>
   </div>
 
   <div class="sec">
-    <div class="sec-h"><span class="t">大÷ 榜</span><span class="rule"></span><span class="n mono">11 次 · 本月</span></div>
-    <div class="rap">
+    <div class="sec-h"><span class="t">大÷ 榜</span><span class="rule"></span><span class="n mono" id="rapMeta">11 次 · 本月</span></div>
+    <div class="rap" id="rapList">
       <div class="r top"><span class="i mono">01</span><span class="n2">Perennis</span><span class="cnt"><b>4</b>次</span></div>
       <div class="r"><span class="i mono">02</span><span class="n2">奥妙</span><span class="cnt"><b>3</b>次</span></div>
       <div class="r"><span class="i mono">03</span><span class="n2">黑刺</span><span class="cnt"><b>2</b>次</span></div>
@@ -1335,6 +1335,62 @@ function reset(){
   });
 })();
 
+/* 门厅三块动态区：传票卡、本月案底、大÷榜。
+   静态 HTML 里的数字是设计稿占位，真实数据到位后必须整块换掉，
+   否则会拿着假名字冒充判决结果。 */
+
+function renderSummons(){
+  // 传票取最新一件还没宣判的案子；全都判完了就说没有
+  const c = CASES.find(x=>x.res==='pending') || CASES.find(x=>!x.who);
+  const el = document.getElementById('summons'), sub = document.getElementById('summonsSub');
+  if(!el) return;
+  if(!c){
+    el.querySelector('.stamp').textContent = '暂 无 案';
+    el.querySelector('.ttl').textContent = '本庭休庭中';
+    sub.textContent = '打完一局五黑，卷宗会自动送达';
+    el.querySelector('.go span').textContent = '先去案卷库翻翻旧账';
+    el.onclick = ()=>go('L');
+    return;
+  }
+  el.querySelector('.stamp').textContent = '待 开 庭';
+  el.querySelector('.ttl').textContent = '一件惨案等待审理';
+  sub.textContent = [c.dur, c.res==='win'?'胜诉':'败北', '五黑', c.when]
+    .filter(Boolean).join(' · ');
+  el.querySelector('.go span').textContent = '卷宗已备妥，传五人到庭';
+  el.onclick = ()=>go('W');
+}
+
+function renderStats(s){
+  const set = (id,v)=>{ const e=document.getElementById(id); if(e) e.textContent = v; };
+  set('statMonth', (new Date().getMonth()+1) + ' 月');
+  set('statTrials', s ? s.trials : 0);
+  set('statWins',   s ? s.wins   : 0);
+  set('statGuilty', s ? s.guilty : 0);
+
+  const list = document.getElementById('rapList');
+  const meta = document.getElementById('rapMeta');
+  if(!list) return;
+  const board = (s && s.leaderboard) || [];
+  if(!board.length){
+    // 一次庭都没开过时，榜上摆假名字比空着更糟
+    meta.textContent = '尚无判决';
+    list.innerHTML =
+      '<div class="recess"><div class="t">榜上无人</div>' +
+      '<div class="p">「还没人被定过罪。开一次庭，这里就有名字了。」</div></div>';
+    return;
+  }
+  meta.textContent = s.guilty + ' 次 · 本月';
+  // Trial 由 trial-bridge.js 定义，加载顺序在本脚本之后；boot 时可能还没有
+  const myId = (typeof Trial !== 'undefined' && Trial) ? Trial.me : null;
+  list.innerHTML = board.slice(0,5).map((r,i)=>{
+    const me = myId != null && r.player_id === myId;
+    return `<div class="r${i===0?' top':''}">` +
+      `<span class="i mono">${String(i+1).padStart(2,'0')}</span>` +
+      `<span class="n2">${r.display_name}${me?' <span style="font-size:9.5px;color:var(--gold);letter-spacing:.1em">你</span>':''}</span>` +
+      `<span class="cnt"><b>${r.count}</b>次</span></div>`;
+  }).join('');
+}
+
 /* 初始化门厅 —— 先用内置数据立刻上屏（微信里白屏最致命），
    再异步拉后端覆盖。后端不可达时页面保持可用。 */
 go(0);
@@ -1347,6 +1403,8 @@ go(0);
   }
   renderHomeFeed();
   renderArchive();
+  renderSummons();
+  renderStats(await loadStats());
   // 预载最近一件待开庭/最新案卷的详情，进单案页时已有真实证据
   const first = CASES[0];
   if(first) await loadMatch(first.id);
