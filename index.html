@@ -118,6 +118,22 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
 .av{width:20px;height:20px;border-radius:50%;display:grid;place-items:center;font-size:9px;
   background:var(--ash2);border:1px solid var(--line);color:var(--bone);animation:pop .3s ease both}
 @keyframes pop{from{opacity:0}to{opacity:1}}
+/* 自己那一票：金色描边，一眼可辨 */
+.av.mine{background:var(--gold);border-color:var(--gold-hi);color:var(--void);
+  font-weight:700;box-shadow:0 0 0 2px rgba(217,164,65,.25)}
+
+/* ── 身份未登记的引导层 ── */
+#idGate{position:fixed;inset:0;z-index:200;background:rgba(10,7,5,.82);
+  backdrop-filter:blur(3px);display:grid;place-items:center;padding:24px;
+  animation:fade .25s ease both}
+#idGate .gatebox{max-width:320px;width:100%;background:var(--ash);
+  border:1px solid var(--line);border-radius:4px;padding:22px 20px;text-align:center;
+  box-shadow:0 12px 40px rgba(0,0,0,.6)}
+#idGate .gatetitle{font-size:16px;color:var(--gold);letter-spacing:2px;margin-bottom:10px}
+#idGate .gatetext{font-size:12px;line-height:1.7;color:var(--bone-dim);margin-bottom:18px}
+#idGate .gatebtn{display:block;text-decoration:none;margin-bottom:12px}
+#idGate .gateskip{font-size:11px;color:var(--bone-dim);opacity:.6;cursor:pointer;
+  text-decoration:underline;text-underline-offset:3px}
 
 /* ── timer ── */
 .timer{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,var(--void) 70%,transparent);

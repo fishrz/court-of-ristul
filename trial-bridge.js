@@ -12,6 +12,8 @@ const Trial = {
   status: null,
   deadline: null,    // 服务端权威截止时间（Date）
   tally: {},
+  myVote: null,      // 我投给了谁（player_id），用于 UI 标记与重连回填
+  voters: {},        // {voter_id: nominee_id}，重连后还原谁投了谁
   simulated: false   // true = 后端不可用，走原本地演示流程
 };
 // 显式挂到 window：index.html 的内联脚本先于本文件执行，
@@ -48,10 +50,35 @@ function nameOfPlayer(playerId) {
   return p ? p.display_name : ("玩家" + playerId);
 }
 
+/* ---------- 未登记身份的引导 ----------
+   没有 player_id 的人无法 attend/vote（后端要内部 ID）。
+   与其静默失败，不如明确告知并给出去登记的入口。 */
+function showIdentityGate() {
+  if (document.getElementById("idGate")) return;
+  // /join 由后端提供。开发时前后端不同端口，同源部署时又是同一个域，
+  // 所以从 API 基址推导，不写死相对路径（否则 4311 上会 404）。
+  const joinURL = String(API).replace(/\/api\/?$/, "") + "/join";
+  const gate = document.createElement("div");
+  gate.id = "idGate";
+  gate.innerHTML =
+    '<div class="gatebox">' +
+      '<div class="gatetitle">尚未登记身份</div>' +
+      '<div class="gatetext">本庭需要核实你的 Steam 身份，' +
+        '才能记录到庭与投票。登记一次即可，之后自动认人。</div>' +
+      '<a class="btn gatebtn" href="' + joinURL + '">前往登记 · 报到</a>' +
+      '<div class="gateskip">仅旁听，不参与表决</div>' +
+    '</div>';
+  gate.querySelector(".gateskip").onclick = () => gate.remove();
+  document.body.appendChild(gate);
+}
+window.showIdentityGate = showIdentityGate;
+
 /* ---------- 开庭 ---------- */
 async function openTrial(matchId) {
   Trial.matchId = matchId;
-  await resolveMe();
+  const me = await resolveMe();
+  // 未登记的人进来只能旁听：先提示去 /join，不要等到点投票才静默失败
+  if (me == null) showIdentityGate();
   try {
     const t = await api("/trials/" + matchId + "/open", { method: "POST", body: "{}" });
     Trial.id = t.id;
@@ -92,6 +119,12 @@ async function syncTrialState(trialId) {
     updateWaitCount();
   }
   // 状态机对齐：服务端说到哪一步，前端就跳到哪一步
+  // 先从投票明细还原"我投过谁"，否则重连后自己那票的标记会丢失
+  Trial.voters = {};
+  (t.votes || []).forEach(v => {
+    Trial.voters[String(v.voter_id)] = v.nominee_id;
+    if (Trial.me != null && v.voter_id === Trial.me) Trial.myVote = v.nominee_id;
+  });
   if (t.status === "voting" && Trial.deadline) {
     if (!document.querySelector("#s4.on")) go(4);
     startServerCountdown(Trial.deadline);
@@ -132,6 +165,10 @@ function handleLiveEvent(ev) {
       break;
     case "vote":
       Trial.tally = ev.tally || {};
+      if (ev.voter_id != null && ev.voter_id === Trial.me) {
+        Trial.myVote = ev.nominee_id;
+      }
+      Trial.voters[String(ev.voter_id)] = ev.nominee_id;
       renderTally(Trial.tally);
       break;
     case "appeal":
@@ -169,6 +206,8 @@ function startServerCountdown(deadline) {
 /* ---------- 真实投票 ---------- */
 async function castVoteLive() {
   if (selected === null) return;
+  // 没身份就投不了：后端要内部 player_id，这里明确引导而不是静默失败
+  if (Trial.me == null) { showIdentityGate(); return; }
   const nominee = NOMINEES[selected];
   const b = document.getElementById("voteBtn");
   if (b) { b.disabled = true; b.textContent = "唱票中…"; }
@@ -190,14 +229,25 @@ function renderTally(tally) {
     const box = nodes[i] && nodes[i].querySelector(".tally");
     if (!box) return;
     const count = tally[String(n.player_id)] || 0;
+    const mine = Trial.myVote != null && Trial.myVote === n.player_id;
     box.innerHTML = "";
     for (let k = 0; k < count; k++) {
       const a = document.createElement("div");
-      a.className = "av";
-      a.textContent = "•";
+      // 我那一票排在最前并高亮标记，让人一眼看到自己投了谁
+      const isMine = mine && k === 0;
+      a.className = isMine ? "av mine" : "av";
+      a.textContent = isMine ? "我" : "•";
+      if (isMine) a.title = "你投的票";
       box.appendChild(a);
     }
   });
+  // 已投票后锁定按钮，避免重复提交与"我到底投了没"的困惑
+  const b = document.getElementById("voteBtn");
+  if (b && Trial.myVote != null) {
+    b.disabled = true;
+    const who = nameOfPlayer(Trial.myVote);
+    b.textContent = who ? "已投 " + who + " · 等待宣判" : "已投票 · 等待宣判";
+  }
 }
 
 function showAppealText(text) {
