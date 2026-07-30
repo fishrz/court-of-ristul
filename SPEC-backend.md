@@ -36,7 +36,9 @@ Match           # 案卷
   id, match_id(unique, OpenDota), started_at, duration,
   radiant_win, our_side(radiant/dire), we_won,
   parse_status(pending/parsing/parsed/failed),
-  raw_json(TEXT), created_at
+  raw_json(TEXT),
+  evidence_json, nominees_json,     # 归因结果，解析完成时算好（不依赖开庭）
+  created_at
 
 MatchPlayer     # 一局里每个成员的表现
   id, match_id(FK), player_id(FK, nullable 敌方),
@@ -48,12 +50,15 @@ MatchPlayer     # 一局里每个成员的表现
 
 Trial           # 开庭（一局一次，唯一约束）
   id, match_id(FK, UNIQUE), status(waiting/evidence/voting/closed),
-  evidence_json, nominees_json,     # 引擎产出
   vote_started_at, vote_deadline,
   verdict_player_id, verdict_json, appeal_text,
   ai_verdict_player_id,             # AI 独立判决（建庭时算好）
   ai_verdict_json,                  # {score, evidence[], reasoning}
   created_at, closed_at
+
+# 注：归因结果（evidence/nominees）存在 Match 上，不是 Trial 上。
+# 理由：归因是数据事实，解析完就有；开庭只是走流程。
+# 案卷库要能预览未开庭比赛的罪证，所以不能挂在 Trial 下。
 
 Attendance      # 候审室到场
   id, trial_id(FK), player_id(FK), arrived_at
@@ -76,7 +81,9 @@ GET    /api/players/resolve/{steam_id}   查 OpenDota 昵称/头像，供填 ID 
 
 ### 案卷
 ```
-GET  /api/matches                案卷库。?filter=win|lose|pending|me
+GET  /api/matches                案卷库。?filter=win|lose|pending
+                                 （me 过滤器暂不实现：无登录系统，"我"无法界定。
+                                   前端如需高亮自己，靠本地存的 steam_id 客户端过滤）
 GET  /api/matches/{match_id}     单案详情（速报 + 罪证 + 提名）
 POST /api/matches/sync           手动触发一次 OpenDota 轮询
 GET  /api/stats/monthly          门厅统计：开庭/胜诉/大÷ + 大÷榜
