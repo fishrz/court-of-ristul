@@ -8,6 +8,9 @@ Type=simple
 User=ubuntu
 WorkingDirectory=/opt/court-of-ristul/backend
 Environment=PYTHONUNBUFFERED=1
+# DEEPSEEK_API_KEY 放这个文件，它不在 git 里。缺失时后端自动降级回规则引擎，
+# 不会启动失败——所以 - 前缀是有意的。
+EnvironmentFile=-/etc/court-of-ristul.env
 # WS 广播与投票倒计时都在进程内存里，必须单 worker。
 # 多 worker 会把客户端分到不同进程，广播互相看不见。
 ExecStart=/opt/court-of-ristul/backend/.venv/bin/uvicorn app.main:app \
