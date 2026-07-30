@@ -118,6 +118,8 @@ async function syncTrialState(trialId) {
     renderSeatStates();
     updateWaitCount();
   }
+  // 辩词已落库：刷新/重连后要还原，否则后进来的人看不到被告说了什么
+  if (t.appeal_text) showAppealText(t.appeal_text);
   // 状态机对齐：服务端说到哪一步，前端就跳到哪一步
   // 先从投票明细还原"我投过谁"，否则重连后自己那票的标记会丢失
   Trial.voters = {};
@@ -172,7 +174,7 @@ function handleLiveEvent(ev) {
       renderTally(Trial.tally);
       break;
     case "appeal":
-      showAppealText(ev.text);
+      showAppealText(ev.text, ev.player_id ? nameOfPlayer(ev.player_id) : null);
       break;
     case "verdict":
       Trial.status = "closed";
@@ -250,10 +252,33 @@ function renderTally(tally) {
   }
 }
 
-function showAppealText(text) {
-  const el = document.getElementById("appealShown");
-  if (el && text) { el.textContent = text; el.style.display = ""; }
+function showAppealText(text, who) {
+  const sec = document.getElementById("appealSec");
+  if (!sec || !text) return;
+  const name = who || "被告";
+  sec.innerHTML =
+    '<div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span>' +
+    '<span class="n">已呈庭</span></div>' +
+    '<div class="plea"><span class="qm">&ldquo;</span><p>' +
+    String(text).replace(/</g, "&lt;") + "</p>" +
+    '<div class="by">—— ' + name + " · 当庭陈述</div></div>";
 }
+window.showAppealText = showAppealText;
+
+/* 把辩词呈给服务端，让所有人都看到（离线时退回本地渲染） */
+async function submitAppealLive(text) {
+  if (!Trial.id || Trial.simulated) return false;
+  try {
+    await api("/trials/" + Trial.id + "/appeal", {
+      method: "POST",
+      body: JSON.stringify({ text: text })
+    });
+    return true;   // 服务端会广播 appeal 事件，由 handleLiveEvent 渲染
+  } catch (err) {
+    return false;
+  }
+}
+window.submitAppealLive = submitAppealLive;
 
 /* ---------- 座位状态刷新（不重启模拟定时器，纯状态回填） ---------- */
 function renderSeatStates() {

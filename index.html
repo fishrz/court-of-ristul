@@ -1197,13 +1197,14 @@ function renderEvidence(){
 function nextEvidence(){ go(4); }
 
 /* ══ 上诉 ══ */
-function submitAppeal(){
+async function submitAppeal(){
   const t=document.getElementById('appealTxt').value.trim();
   if(!t) return;
-  document.getElementById('appealSec').innerHTML=
-    `<div class="sec-h"><span class="t">最后陈述</span><span class="rule"></span><span class="n">已呈庭</span></div>
-     <div class="plea"><span class="qm">&ldquo;</span><p>${t.replace(/</g,'&lt;')}</p>
-     <div class="by">—— 被告 Perennis · 当庭陈述</div></div>`;
+  const btn=document.getElementById('appealBtn');
+  if(btn){ btn.disabled=true; btn.textContent='呈 庭 中…'; }
+  // 优先呈给服务端，让全场都看到；离线/模拟则本地渲染
+  const sent = window.submitAppealLive ? await window.submitAppealLive(t) : false;
+  if(!sent && window.showAppealText) window.showAppealText(t, '被告 Perennis');
 }
 
 function renderNominees(){
