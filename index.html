@@ -469,22 +469,11 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
     </div>
   </div>
 
-  <div class="sec">
-    <div class="sec-h"><span class="t">团战时间线</span><span class="rule"></span><span class="n mono">8 场</span></div>
+  <div class="sec" id="tlSec" style="display:none">
+    <div class="sec-h"><span class="t">团战时间线</span><span class="rule"></span><span class="n mono" id="tlCount">—</span></div>
     <div style="border:1px solid var(--line);border-radius:var(--r);background:var(--pitch);padding:15px 14px">
-      <div style="display:flex;align-items:flex-end;gap:5px;height:64px">
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:26px;width:100%"><i style="height:100%;width:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">7'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:44px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">13'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">18'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:64px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--ember-hi);margin-top:5px" class="mono">20'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:32px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">22'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">31'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:20px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--bone-dim);margin-top:5px" class="mono">32'</div></div>
-        <div style="flex:1;text-align:center"><div class="bar bad" style="height:52px"><i style="height:100%"></i></div><div style="font-size:9px;color:var(--ember-hi);margin-top:5px" class="mono">35'</div></div>
-      </div>
-      <div style="font-size:11.5px;color:var(--bone-dim);margin-top:12px;padding-top:11px;border-top:1px solid rgba(58,36,24,.6)">
-        <b style="color:var(--ember-hi)">20:04</b> 一波团灭 10 人，经济由 +2.1k 转 −6.8k —— 全场转折点。
-      </div>
+      <div style="display:flex;align-items:flex-end;gap:5px;height:64px" id="tlBars"></div>
+      <div style="font-size:11.5px;color:var(--bone-dim);margin-top:12px;padding-top:11px;border-top:1px solid rgba(58,36,24,.6)" id="tlNote"></div>
     </div>
   </div>
 
@@ -1021,12 +1010,66 @@ async function openCase(matchId){
 }
 
 /* 速报页：真实比分、真实阵亡名单 */
+/* 团战时间线：柱高 = 死亡人数，颜色 = 我方经济是涨是跌。
+   原来这里是写死的 8 根柱子，每场比赛显示得一模一样——那是伪造证据。
+   未解析的比赛拿不到 teamfights，隐藏整块，不编。 */
+function renderTimeline(tl){
+  const sec = document.getElementById('tlSec');
+  if(!sec) return;
+  if(!tl || !tl.fights || !tl.fights.length){ sec.style.display='none'; return; }
+  sec.style.display='';
+
+  const cnt = document.getElementById('tlCount');
+  if(cnt) cnt.textContent = tl.count + ' 场';
+
+  // 手机屏放不下十几根柱子，只留死人最多的 10 场，再按时间排回去
+  const all = tl.fights.slice();
+  const shown = (all.length > 10
+    ? all.slice().sort((a,b)=>(b.deaths||0)-(a.deaths||0)).slice(0,10)
+    : all).sort((a,b)=>a.start-b.start);
+
+  const maxD = Math.max(...shown.map(f=>f.deaths||0), 1);
+  const pivotAt = tl.pivot ? tl.pivot.start : null;
+
+  document.getElementById('tlBars').innerHTML = shown.map(f=>{
+    const h = 16 + Math.round((f.deaths||0)/maxD * 48);   // 16-64px
+    const bad = f.swing == null ? true : f.swing < 0;      // 经济跌=红
+    const isPivot = pivotAt != null && f.start === pivotAt;
+    const lblColor = isPivot ? 'var(--ember-hi)' : 'var(--bone-dim)';
+    const title = `${f.label} · ${f.deaths} 人阵亡` +
+      (f.swing != null ? ` · 经济 ${f.swing>0?'+':''}${f.swing}` : '');
+    return '<div style="flex:1;text-align:center" title="'+title+'">' +
+      '<div class="bar '+(bad?'bad':'')+'" style="height:'+h+'px'+
+        (isPivot?';box-shadow:0 0 0 1px var(--ember-hi)':'')+'">' +
+        '<i style="height:100%"></i></div>' +
+      '<div style="font-size:9px;color:'+lblColor+';margin-top:5px" class="mono">'+
+        f.label+'</div></div>';
+  }).join('');
+
+  const note = document.getElementById('tlNote');
+  if(!note) return;
+  if(tl.pivot){
+    const p = tl.pivot;
+    const mm = String(Math.floor(p.start/60)), ss = String(p.start%60).padStart(2,'0');
+    const k = (Math.abs(p.swing)/1000).toFixed(1);
+    note.innerHTML = '<b style="color:var(--ember-hi)">'+mm+':'+ss+'</b> ' +
+      p.deaths + ' 人阵亡，经济净亏 ' + k + 'k —— 全场转折点。';
+  } else {
+    // 没有哪一波打崩，就别硬安一个转折点
+    const total = all.reduce((s,f)=>s+(f.deaths||0),0);
+    note.textContent = '全场 ' + tl.count + ' 场团战，共 ' + total +
+      ' 人阵亡，没有出现决定性崩盘。';
+  }
+}
+
 function renderBrief(c, detail){
   const win = c.res==='win';
   const banner = document.getElementById('briefBanner');
   if(banner) banner.className = 'banner ' + (win?'win':'lose');
   const big = document.getElementById('briefBig');
   if(big) big.textContent = win ? '胜诉' : '败北';
+
+  renderTimeline(detail && detail.timeline);
 
   const side = detail && detail.our_side==='radiant' ? '天辉'
              : detail && detail.our_side==='dire' ? '夜魇' : '';
