@@ -77,6 +77,21 @@ class MatchRead(ORMModel):
     created_at: datetime
 
 
+class MatchListItem(ORMModel):
+    """案卷库列表项。刻意不含 raw_json —— 那是几百 KB 的 OpenDota 原始包，
+    列表里带上会让移动端微信直接卡死。详情用 GET /api/matches/{match_id}。"""
+
+    id: int
+    match_id: int
+    started_at: datetime | None
+    duration: int | None
+    radiant_win: bool | None
+    our_side: Side | None
+    we_won: bool | None
+    parse_status: ParseStatus
+    created_at: datetime
+
+
 class TrialRead(ORMModel):
     id: int
     match_id: int

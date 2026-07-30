@@ -11,13 +11,13 @@ from app.db import get_session
 from app.models import Match, Player, Trial
 from app.opendota import OpenDotaClient
 from app.poller import poll_once
-from app.schemas import MatchPlayerRead, MatchRead
+from app.schemas import MatchListItem, MatchPlayerRead, MatchRead
 
 router = APIRouter(tags=["matches"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-@router.get("/api/matches", response_model=list[MatchRead])
+@router.get("/api/matches", response_model=list[MatchListItem])
 async def list_matches(
     session: Session,
     filter: Literal["win", "lose", "pending"] | None = None,
@@ -45,6 +45,11 @@ async def match_detail(
     if case is None:
         raise HTTPException(status_code=404, detail="match not found")
     payload = MatchRead.model_validate(case).model_dump(mode="json")
+    # 已解析成对象的字段不再重复传原始字符串；raw_json 是几百 KB 的
+    # OpenDota 原始包，前端用不到，留在库里备查即可。
+    payload.pop("raw_json", None)
+    payload.pop("evidence_json", None)
+    payload.pop("nominees_json", None)
     payload["players"] = [
         MatchPlayerRead.model_validate(player).model_dump(mode="json")
         for player in case.players
