@@ -37,19 +37,20 @@ async def seed_players(session: AsyncSession, count: int = 5) -> list[Player]:
     return players
 
 
-def recent_match(match_id: int, player_slot: int = 0) -> dict:
+def recent_match(match_id: int, player_slot: int = 0, party_size: int | None = None) -> dict:
     return {
         "match_id": match_id,
         "player_slot": player_slot,
         "radiant_win": True,
         "start_time": 1785370000,
         "duration": 2400,
+        "party_size": party_size,
     }
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("member_count, expected_cases", [(3, 0), (4, 1), (5, 1)])
-async def test_poll_only_creates_cases_for_at_least_four_teammates(
+@pytest.mark.parametrize("member_count, expected_cases", [(1, 0), (2, 0), (3, 1), (5, 1)])
+async def test_poll_creates_case_when_enough_registered_teammates(
     session: AsyncSession, member_count: int, expected_cases: int
 ) -> None:
     players = await seed_players(session)
@@ -65,6 +66,23 @@ async def test_poll_only_creates_cases_for_at_least_four_teammates(
     count = await session.scalar(select(func.count()).select_from(Match))
     assert count == expected_cases
     assert client.parse_requests == ([8917764448] if expected_cases else [])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("party_size, expected_cases", [(None, 0), (2, 0), (3, 1), (5, 1)])
+async def test_lone_registered_player_falls_back_to_party_size(
+    session: AsyncSession, party_size: int | None, expected_cases: int
+) -> None:
+    """冷启动：只有一个人登记时，靠 Dota 自报的开黑人数认五黑局。"""
+    players = await seed_players(session)
+    client = FakeOpenDotaClient(
+        {players[0].steam_id: [recent_match(8917764448, party_size=party_size)]}
+    )
+
+    await poll_once(session, client)
+
+    count = await session.scalar(select(func.count()).select_from(Match))
+    assert count == expected_cases
 
 
 @pytest.mark.asyncio

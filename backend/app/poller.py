@@ -3,6 +3,7 @@ import json
 import logging
 from collections import defaultdict
 from collections.abc import Mapping
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol
 
@@ -16,6 +17,22 @@ from app.opendota import OpenDotaClient
 
 logger = logging.getLogger(__name__)
 POLL_INTERVAL_SECONDS = 300
+
+# 一局要成为案卷，需要满足下面任意一条：
+#   1. 至少 MIN_REGISTERED 个已登记玩家出现在同一队（队友都登记了的理想情况）；
+#   2. 至少一个已登记玩家，且 OpenDota 报告的开黑人数 >= MIN_PARTY_SIZE。
+# 第 2 条是给「只有一个人登记」的冷启动阶段用的：没有它，队友没登记完之前
+# 一局都抓不到。party_size 由 Dota 自己给出，比猜要准。
+MIN_REGISTERED = 3
+MIN_PARTY_SIZE = 3
+
+
+def _qualifies(members: Mapping[int, Mapping[str, Any]]) -> bool:
+    if len(members) >= MIN_REGISTERED:
+        return True
+    return any(
+        (recent.get("party_size") or 0) >= MIN_PARTY_SIZE for recent in members.values()
+    )
 
 
 class PollClient(Protocol):
@@ -47,7 +64,7 @@ async def poll_once(session: AsyncSession, client: PollClient) -> int:
 
     created = 0
     for (match_id, radiant_side), members in candidates.items():
-        if len(members) < 4:
+        if not _qualifies(members):
             continue
         if await session.scalar(select(Match.id).where(Match.match_id == match_id)):
             continue
@@ -112,7 +129,9 @@ def _metric_player(
     metrics.update(
         id=player.get("account_id"),
         name=player.get("personaname") or str(player.get("account_id") or "Unknown"),
-        hero=player.get("hero_name") or str(player.get("hero_id") or "Unknown"),
+        hero=player.get("hero_name")
+        or _hero_name(player.get("hero_id"))
+        or str(player.get("hero_id") or "Unknown"),
         role=_lane_role(player),
         gpm=player.get("gold_per_min"),
         xpm=player.get("xp_per_min"),
@@ -185,7 +204,8 @@ async def _store_parsed_match(
                 match_id=case.id,
                 player_id=known_player.id if known_player else None,
                 hero_id=int(raw_player.get("hero_id") or 0),
-                hero_name=raw_player.get("hero_name"),
+                hero_name=raw_player.get("hero_name")
+                or _hero_name(raw_player.get("hero_id")),
                 lane_role=metrics["role"],
                 is_our_team=is_our_team,
                 kills=raw_player.get("kills"),
@@ -223,6 +243,24 @@ async def _store_parsed_match(
 def _load_meme_db() -> dict[str, Any]:
     path = Path(__file__).parents[1] / "data" / "memes.json"
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+@lru_cache(maxsize=1)
+def _hero_names_zh() -> dict[str, str]:
+    """hero_id → 中文英雄名。
+
+    OpenDota 的 /matches/{id} 只给 hero_id，不给 hero_name，前端直接显示会漏出
+    「121」这种数字。映射表取自 Valve 官方 datafeed（schinese），静态落盘，
+    不在请求路径上依赖外网。新版本加英雄时重跑 scripts/refresh_heroes.py。
+    """
+    path = Path(__file__).parents[1] / "data" / "heroes_zh.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _hero_name(hero_id: Any) -> str | None:
+    if hero_id is None:
+        return None
+    return _hero_names_zh().get(str(hero_id))
 
 
 async def polling_loop(factory: async_sessionmaker[AsyncSession]) -> None:
