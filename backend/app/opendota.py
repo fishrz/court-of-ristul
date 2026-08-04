@@ -53,6 +53,30 @@ class OpenDotaClient:
     async def request_parse(self, match_id: int) -> Any | None:
         return await self._request("POST", f"/request/{match_id}")
 
+    # ---- meta / 版本基准 ----------------------------------------------
+    # 这几个端点没有 match_id，返回的是全服聚合数据，用于给个人表现
+    # 提供「同分段同英雄」参照系。免费、无需 key，但体积大，调用方
+    # 必须缓存（见 models.MetaSnapshot）。
+
+    async def get_patches(self) -> Any | None:
+        return await self._request("GET", "/constants/patch")
+
+    async def get_hero_stats(self) -> Any | None:
+        """全英雄 × 8 个分段的 pick/win。字段形如 7_pick / 7_win。"""
+        return await self._request("GET", "/heroStats")
+
+    async def get_hero_benchmarks(self, hero_id: int) -> Any | None:
+        """该英雄各项指标的全服百分位对照表（GPM/XPM/正补/伤害…）。"""
+        return await self._request("GET", f"/benchmarks?hero_id={hero_id}")
+
+    async def get_item_timings(self, hero_id: int) -> Any | None:
+        """该英雄关键物品的出装时间 × 该时间段的胜率样本。"""
+        return await self._request("GET", f"/scenarios/itemTimings?hero_id={hero_id}")
+
+    async def get_hero_matchups(self, hero_id: int) -> Any | None:
+        """该英雄对线/对局各英雄的真实胜率（games_played + wins）。"""
+        return await self._request("GET", f"/heroes/{hero_id}/matchups")
+
     async def _request(self, method: str, path: str) -> Any | None:
         for attempt in range(3):
             try:

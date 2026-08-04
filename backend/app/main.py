@@ -9,6 +9,7 @@ from fastapi.responses import FileResponse
 
 from app.db import Base, SessionLocal, engine
 from app.poller import polling_loop
+from app.routers.dossier import router as dossier_router
 from app.routers.matches import router as matches_router
 from app.routers.players import router as players_router
 from app.routers.trials import router as trials_router
@@ -51,6 +52,7 @@ app.add_middleware(
 app.include_router(matches_router)
 app.include_router(players_router)
 app.include_router(trials_router)
+app.include_router(dossier_router)
 
 
 STATIC_DIR = Path(__file__).resolve().parent.parent / "static"

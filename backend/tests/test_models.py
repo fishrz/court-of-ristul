@@ -10,7 +10,7 @@ from app.models import Attendance, Match, Player, Trial, Vote
 
 
 @pytest.mark.asyncio
-async def test_creates_all_six_tables(session: AsyncSession) -> None:
+async def test_creates_all_tables(session: AsyncSession) -> None:
     connection = await session.connection()
     table_names = await connection.run_sync(
         lambda sync_connection: set(inspect(sync_connection).get_table_names())
@@ -23,6 +23,7 @@ async def test_creates_all_six_tables(session: AsyncSession) -> None:
         "trials",
         "attendances",
         "votes",
+        "meta_snapshots",
     }
     assert table_names == set(Base.metadata.tables)
 

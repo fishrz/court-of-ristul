@@ -84,6 +84,30 @@ class MatchPlayer(Base):
     player: Mapped[Player | None] = relationship()
 
 
+class MetaSnapshot(Base):
+    """OpenDota 版本基准数据的本地缓存。
+
+    为什么要落库而不是实时调：heroStats 单次 164KB，itemTimings 每个英雄
+    18KB。开庭要在毫秒级返回，不能在请求里等 OpenDota。这些数据的更新
+    粒度本来就是天级（pub_pick_trend 是 7 天数组），每天刷一次绰绰有余。
+
+    patch 字段是防腐烂的关键：版本一换，上个版本的出装时间和胜率全部
+    作废。拿 7.40 的 meta 去建议 7.41 的打法，就是新版本的假证据。
+    """
+
+    __tablename__ = "meta_snapshots"
+    __table_args__ = (UniqueConstraint("kind", "hero_id"),)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # hero_stats | benchmarks | item_timings | matchups
+    kind: Mapped[str] = mapped_column(String(30), index=True)
+    # 全局数据（hero_stats）用 0，单英雄数据用真实 hero_id
+    hero_id: Mapped[int] = mapped_column(Integer, default=0)
+    patch: Mapped[str | None] = mapped_column(String(20))
+    payload_json: Mapped[str] = mapped_column(Text)
+    fetched_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class Trial(Base):
     __tablename__ = "trials"
 
