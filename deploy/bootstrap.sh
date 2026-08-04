@@ -51,7 +51,7 @@ log "4.5/7 组装前端发布目录 web/"
 rm -rf "$APP_DIR/web"
 mkdir -p "$APP_DIR/web"
 for f in index.html data-layer.js live-layer.js trial-bridge.js \
-	memes-engine.js memes.json; do
+	dossier.js memes-engine.js memes.json; do
 	cp "$APP_DIR/$f" "$APP_DIR/web/"
 done
 chown -R "$APP_USER:$APP_USER" "$APP_DIR/web"
