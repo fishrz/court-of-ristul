@@ -29,21 +29,25 @@ function setLiveBadge(on) {
 }
 
 /* ---------- 身份：join.html 存的是 steam_id，这里换成 player_id ---------- */
+/* ---------- 身份：与 data-layer 的 CURRENT_PLAYER_ID 同一个解析结果 ----------
+   曾经这里按 p.steam_id 匹配，但 GET /api/players 返回的 PlayerOption
+   根本不含 steam_id —— 于是 Trial.me 永远是 null，attend/vote 全部静默失效。
+   现在统一走 data-layer 的 loadPlayers()，只有一处解析逻辑。 */
 async function resolveMe() {
-  let steamId = null;
-  try { steamId = localStorage.getItem("cor.steam_id"); } catch (e) {}
   try {
     Trial.players = await api("/players");
   } catch (err) {
     return null;
   }
-  if (steamId) {
-    const hit = Trial.players.find(p => String(p.steam_id) === String(steamId));
-    if (hit) { Trial.me = hit.id; return hit.id; }
+  let id = (typeof CURRENT_PLAYER_ID !== "undefined") ? CURRENT_PLAYER_ID : null;
+  if (id == null && window.loadPlayers) {
+    id = await loadPlayers();
   }
+  Trial.me = id;
   // 没登记过：不假装是别人，返回 null，由调用方引导去 /join
-  return null;
+  return id;
 }
+window.resolveMe = resolveMe;
 
 function nameOfPlayer(playerId) {
   const p = Trial.players.find(x => x.id === playerId);
@@ -123,6 +127,8 @@ async function syncTrialState(trialId) {
   Trial.status = t.status;
   Trial.tally = t.tally || {};
   Trial.deadline = t.vote_deadline ? new Date(t.vote_deadline) : null;
+  // 开庭门槛：数字全部由服务端下发（quorum / attendee_count / can_start）
+  if (window.setQuorum) setQuorum(t);
 
   // 到场情况回填到候审室
   // 后端 attendances 是扁平的 player_id 数组，不是对象数组
@@ -154,6 +160,7 @@ async function syncTrialState(trialId) {
       renderVerdict({
         guilty_player_id: t.verdict_player_id,
         tally: Trial.tally,
+        verdict: t.verdict || null,
         ai_verdict_player_id: t.ai_verdict_player_id,
         ai_agrees: t.verdict_player_id === t.ai_verdict_player_id
       });
@@ -162,6 +169,7 @@ async function syncTrialState(trialId) {
   }
   return t;
 }
+window.syncTrialState = syncTrialState;
 
 /* ---------- 事件分发 ---------- */
 function handleLiveEvent(ev) {
@@ -170,6 +178,17 @@ function handleLiveEvent(ev) {
     case "attend": {
       const i = SEATS.findIndex(s => s.player_id === ev.player_id);
       if (i >= 0) arrive(i);
+      // 到庭人数变了，门槛提示与按钮态要跟着变。
+      // attend 广播不带聚合数，按本地座位表重算 here，total/quorum 保持服务端值。
+      if (window.QUORUM && window.setQuorum) {
+        setQuorum({
+          quorum: QUORUM.quorum,
+          attendee_count: SEATS.filter(s => s.here).length,
+          total: QUORUM.total,
+          can_start: QUORUM.quorum != null &&
+            SEATS.filter(s => s.here).length >= QUORUM.quorum
+        });
+      }
       break;
     }
     case "stage":
@@ -350,12 +369,22 @@ function renderVerdict(ev) {
     .map(([pid, v]) => `${v} 票 ${nameOfPlayer(Number(pid))}`)
     .join(" · ");
 
-  const res = document.getElementById("voteResult");
-  if (res) {
-    res.textContent =
-      (majority ? `${topCount} 票定罪` : `${topCount} 票领先 · 未过半`) +
+  // 票面措辞同样走极性表：胜局是「票推举」，不是「票定罪」
+  const cp = (typeof CP !== "undefined" && CP) ? CP : COPY.guilt;
+  const decided = cp.polarity === "merit" ? "票推举" : "票定罪";
+  const txt = document.getElementById("voteText") || document.getElementById("voteResult");
+  if (txt) {
+    txt.textContent =
+      (majority ? `${topCount} ${decided}` : `${topCount} 票领先 · 未过半`) +
       (rest ? ` · ${rest}` : "");
   }
+
+  // 出席率与副奖：都来自服务端。注意两条来源结构不同 ——
+  // WS verdict 事件把 attendance/side_award 平铺在顶层，且 ev.verdict 是判词字符串；
+  // syncTrialState 传来的 ev.verdict 才是 verdict_json 对象。
+  const vj = (ev.verdict && typeof ev.verdict === "object") ? ev.verdict : ev;
+  if (window.renderAttendance) renderAttendance(vj.attendance || ev.attendance);
+  if (window.renderSideAward) renderSideAward(vj.side_award || ev.side_award);
 
   // 被告名字（宣判页主体）
   const nameEl = document.getElementById("guiltyName");
@@ -363,10 +392,12 @@ function renderVerdict(ev) {
 
   // 判词/英雄/建议正文按真实被告渲染（主脚本提供），否则 s5 会留着设计稿假判决
   // NOMINEES 是主脚本的 let 声明，不在 window 上，只能靠裸标识符取
-  if (window.renderVerdictBody && guilty != null) {
+  if (window.renderVerdictBody) {
     const list = (typeof NOMINEES !== "undefined" && NOMINEES) || [];
-    const nom = list.find(n => n.player_id === guilty);
-    if (nom) window.renderVerdictBody(nom);
+    const nom = guilty != null ? list.find(n => n.player_id === guilty) : null;
+    // 无人得票 / 提名里找不到人时也要走一遍 —— 否则整页留着「—」占位，
+    // 看起来像加载失败而不是「本庭没有推举」。
+    window.renderVerdictBody(nom || null);
   }
 
   // AI 判决是否与群众一致 —— 产品核心看点
@@ -376,9 +407,18 @@ function renderVerdict(ev) {
       aiEl.style.display = "none";
     } else {
       aiEl.style.display = "";
-      aiEl.textContent = ev.ai_agrees
-        ? `本庭书记官附议：同判 ${nameOfPlayer(ev.ai_verdict_player_id)}。`
-        : `本庭书记官持异议：其认定 ${nameOfPlayer(ev.ai_verdict_player_id)} 更该负责，但群众裁决为准。`;
+      // 措辞跟着极性走：胜局书记官是在「推举」，不是在追责
+      const merit = cp.polarity === "merit";
+      const who = nameOfPlayer(ev.ai_verdict_player_id);
+      if (ev.ai_agrees) {
+        aiEl.textContent = merit
+          ? `本庭书记官附议：同推 ${who}。`
+          : `本庭书记官附议：同判 ${who}。`;
+      } else {
+        aiEl.textContent = merit
+          ? `本庭书记官持异议：其认为 ${who} 更该受表彰，但群众表决为准。`
+          : `本庭书记官持异议：其认定 ${who} 更该负责，但群众裁决为准。`;
+      }
     }
   }
 }
