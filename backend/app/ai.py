@@ -289,12 +289,15 @@ async def coach(
             {"role": "user", "content": "\n".join(lines)},
         ],
         "response_format": {"type": "json_object"},
-        # 思考模式下 reasoning 与输入长度正相关：精简用例约 1558 tokens，
-        # 但带 4 条 findings + 跨局趋势的真实局面实测会烧穿 4000，
-        # 结果 finish_reason=length 整条丢弃——钱花了、46 秒等了、什么都没拿到。
-        # 给到 8000 留足思考余量；正文本身只有 200 tokens 左右，
-        # 用不到的部分不计费，超发预算不花钱，截断才花冤枉钱。
-        "max_tokens": 8000,
+        # 官方上限 384K（context 1M），所以这里远不是天花板。
+        # 不顶满是因为 max_tokens 用不到不计费、只影响最坏等待时长——
+        # 思考模型真放飞写几万 token，用户在手机上要干等几分钟。
+        # 32000 是实测最长思考链（1558）的 20 倍余量，
+        # 既不会再像 4000 那样烧穿丢弃，也给失控留了个上界。
+        "max_tokens": 32000,
+        # flash 默认就是 high，显式写出来是为了让它可见可调：
+        # 教练要串因果链，思考深度是核心价值，不降。
+        "reasoning_effort": "high",
     }
 
     try:
