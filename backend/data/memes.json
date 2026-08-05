@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "updated": "2026-07-30",
   "meta": {
-    "total": 63,
+    "total": 67,
     "sources": [
       "贴吧",
       "NGA",
@@ -2015,6 +2015,68 @@
         "raw": "这波我很强！",
         "note": "原句是自信过头下一秒被反杀"
       }
+    },
+    {
+      "id": "victory_generic_contribution",
+      "category": "victory",
+      "severity": 0,
+      "tone": ["praise"],
+      "requires": [],
+      "forbidden_context": ["defeat"],
+      "text": {
+        "tag": "在场有功",
+        "fact": "本局胜利有他一份。",
+        "quip": "本局在场，账上有他一份。",
+        "verdict": "本庭认定：稳定贡献同样值得记功。",
+        "safe": "本局为团队胜利作出贡献。"
+      },
+      "source": {"origin": "产品占位", "raw": "", "note": "writer 词库合并后替换"}
+    },
+    {
+      "id": "victory_generic_support",
+      "category": "victory_support",
+      "severity": 0,
+      "tone": ["praise"],
+      "requires": [],
+      "forbidden_context": ["defeat"],
+      "text": {
+        "tag": "团队拼图",
+        "fact": "胜利链条完整。",
+        "quip": "聚光灯之外，也有人把活干完了。",
+        "verdict": "本庭认定：甘草之功，不可不记。",
+        "safe": "团队协作表现稳定。"
+      },
+      "source": {"origin": "产品占位", "raw": "", "note": "writer 词库合并后替换"}
+    },
+    {
+      "id": "consolation_generic_effort",
+      "category": "consolation",
+      "severity": 0,
+      "tone": ["comfort"],
+      "requires": [],
+      "forbidden_context": ["victory"],
+      "text": {
+        "tag": "虽败犹荣",
+        "fact": "败局中仍有亮点。",
+        "quip": "这局没赢，但你的活没有白干。",
+        "safe": "败局中仍有值得肯定的表现。"
+      },
+      "source": {"origin": "产品占位", "raw": "", "note": "writer 词库合并后替换"}
+    },
+    {
+      "id": "consolation_generic_support",
+      "category": "consolation_support",
+      "severity": 0,
+      "tone": ["comfort"],
+      "requires": [],
+      "forbidden_context": ["victory"],
+      "text": {
+        "tag": "逆风尽力",
+        "fact": "逆风局仍完成职责。",
+        "quip": "队伍倒了，活还是有人干了。",
+        "safe": "逆风阶段仍保持了有效贡献。"
+      },
+      "source": {"origin": "产品占位", "raw": "", "note": "writer 词库合并后替换"}
     },
     {
       "id": "court_00",

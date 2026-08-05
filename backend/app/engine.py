@@ -112,6 +112,8 @@ def _format_value(metric_name: str, value: Any, metrics: Mapping[str, Any]) -> s
         return f"{seconds // 60}:{seconds % 60:02d}"
     if isinstance(value, bool):
         return str(value).lower()
+    if metric["type"] == "int":
+        return f"{value:,}"
     return str(value)
 
 
@@ -171,6 +173,7 @@ def select(
     options = _options(opts, overrides)
     mode = options.get("mode", "private")
     contexts = set(options.get("contexts", []))
+    tones = set(options.get("tones") or [])
     severity_limit = MODE_LIMITS.get(mode, 3)
     maximum = options.get("max", 4)
     metrics = db["metrics"]
@@ -190,6 +193,8 @@ def select(
         if not entry.get("trigger") and not options.get("includeFallback"):
             continue
         if entry["severity"] > severity_limit:
+            continue
+        if tones and not tones.intersection(entry.get("tone", [])):
             continue
         if not _verified_entry(entry, metrics):
             continue
@@ -291,17 +296,35 @@ def accuse(
     opts: Mapping[str, Any] | None = None,
     **overrides: Any,
 ) -> dict[str, Any]:
-    """Score every player and return suspects in descending guilt order."""
+    """Score every player and return suspects in descending attribution order."""
     options = _options(opts, overrides)
+    score_mode = options.get("score_mode", "guilt")
     suspects = []
     for player in team:
         evidence = select(db, player, team, options)
-        score = sum(item["severity"] ** 2 for item in evidence)
+        score = (
+            len(evidence)
+            if score_mode == "merit"
+            else sum(item["severity"] ** 2 for item in evidence)
+        )
         suspects.append({"player": player, "evidence": evidence, "score": score})
-    suspects.sort(key=lambda result: result["score"], reverse=True)
+    if score_mode == "merit":
+        suspects.sort(
+            key=lambda result: (
+                -result["score"],
+                -(result["player"].get("damage_share") or 0),
+                result["player"].get("gold_share") or 0,
+            )
+        )
+    else:
+        suspects.sort(key=lambda result: result["score"], reverse=True)
     return {
         "suspects": suspects,
-        "noGuilty": not any(result["score"] >= 4 for result in suspects),
+        "noGuilty": (
+            not any(result["score"] > 0 for result in suspects)
+            if score_mode == "merit"
+            else not any(result["score"] >= 4 for result in suspects)
+        ),
     }
 
 

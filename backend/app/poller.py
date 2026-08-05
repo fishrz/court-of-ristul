@@ -253,11 +253,14 @@ async def _store_parsed_match(
         )
         for player in our_raw
     ]
+    we_won = data.get("radiant_win") == our_radiant
     result = accuse(
         _load_meme_db(),
         team,
-        mode="private",
-        contexts=["victory" if case.we_won else "defeat"],
+        mode="safe" if we_won else "private",
+        contexts=["victory" if we_won else "defeat"],
+        tones={"praise", "fact"} if we_won else None,
+        score_mode="merit" if we_won else "guilt",
         seed=case.match_id,
     )
 
@@ -313,7 +316,7 @@ async def _store_parsed_match(
     case.started_at = _timestamp(data.get("start_time"))
     case.duration = data.get("duration")
     case.radiant_win = data.get("radiant_win")
-    case.we_won = case.radiant_win == our_radiant
+    case.we_won = we_won
     case.raw_json = json.dumps(data, ensure_ascii=False)
     case.evidence_json = json.dumps(
         {str(item["player"]["id"]): item["evidence"] for item in result["suspects"]},

@@ -146,6 +146,35 @@ def test_repeat_vote_updates_nominee_without_increasing_tally(trial_app) -> None
     assert asyncio.run(stored_vote()) == (1, player_ids[2])
 
 
+def test_settlement_persists_attendance_snapshot_and_side_award(
+    trial_app, monkeypatch
+) -> None:
+    client, factory = trial_app
+    trial_id, player_ids = _open_and_attend(client, factory, attendee_count=3)
+    side_award = {
+        "player_id": player_ids[1],
+        "name": "B",
+        "hero": "英雄2",
+        "tag": "虽败犹荣",
+        "fact": "塔伤 1,200",
+        "quip": "尽力了",
+        "basis": [],
+    }
+    monkeypatch.setattr(trials, "pick_side_award", lambda *_: side_award)
+
+    assert client.post(f"/api/trials/{trial_id}/start-vote").status_code == 200
+    for voter_id in player_ids[:3]:
+        response = client.post(
+            f"/api/trials/{trial_id}/vote",
+            json={"voter_id": voter_id, "nominee_id": player_ids[0]},
+        )
+        assert response.status_code == 200
+
+    verdict = client.get(f"/api/trials/{trial_id}").json()["verdict"]
+    assert verdict["attendance"] == {"here": 3, "total": 5, "forced": True}
+    assert verdict["side_award"] == side_award
+
+
 def test_concurrent_repeat_vote_is_idempotent(trial_app, monkeypatch) -> None:
     client, factory = trial_app
     trial_id, player_ids = _open_and_attend(client, factory)

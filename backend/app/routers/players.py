@@ -8,15 +8,19 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db import get_session
 from app.models import Player
 from app.opendota import OpenDotaClient
-from app.schemas import PlayerCreate, PlayerRead
+from app.schemas import PlayerCreate, PlayerOption, PlayerRead
 
 router = APIRouter(prefix="/api/players", tags=["players"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 
 
-@router.get("", response_model=list[PlayerRead])
+@router.get("", response_model=list[PlayerOption])
 async def list_players(session: Session) -> list[Player]:
-    result = await session.scalars(select(Player).order_by(Player.created_at, Player.id))
+    result = await session.scalars(
+        select(Player)
+        .where(Player.is_active.is_(True))
+        .order_by(Player.created_at, Player.id)
+    )
     return list(result)
 
 

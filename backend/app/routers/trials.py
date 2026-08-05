@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from app import ai
+from app.award import pick_side_award
 from app.db import SessionLocal, get_session
 from app.models import Attendance, Match, MatchPlayer, Trial, Vote
 from app.schemas import AppealCreate, TrialRead
@@ -21,6 +22,7 @@ from app.ws import manager
 router = APIRouter(tags=["trials"])
 Session = Annotated[AsyncSession, Depends(get_session)]
 VOTE_SECONDS = 60
+QUORUM_MIN = 3
 
 
 class AttendanceCreate(BaseModel):
@@ -45,11 +47,23 @@ def _json(value: str | None) -> Any:
 
 
 def _trial_payload(trial: Trial, tally: dict[str, int]) -> dict[str, Any]:
+    total = len(
+        [
+            player
+            for player in trial.match.players
+            if player.is_our_team and player.player_id is not None
+        ]
+    )
+    attendee_count = len(trial.attendances)
+    quorum = min(QUORUM_MIN, total)
     payload = TrialRead.model_validate(trial).model_dump(mode="json")
     payload.update(
         attendances=[item.player_id for item in trial.attendances],
-        here=len(trial.attendances),
-        total=len([player for player in trial.match.players if player.is_our_team]),
+        here=attendee_count,
+        attendee_count=attendee_count,
+        total=total,
+        quorum=quorum,
+        can_start=attendee_count >= quorum,
         tally=tally,
         # 投票明细：让客户端在重连后能还原"谁投了谁"，
         # 仅有聚合 tally 时无法判断本人是否已投过票。
@@ -75,7 +89,9 @@ async def _get_trial(session: AsyncSession, trial_id: int) -> Trial:
         .options(
             selectinload(Trial.attendances),
             selectinload(Trial.votes),
-            selectinload(Trial.match).selectinload(Match.players),
+            selectinload(Trial.match)
+            .selectinload(Match.players)
+            .selectinload(MatchPlayer.player),
         )
     )
     if trial is None:
@@ -351,15 +367,26 @@ async def start_vote(trial_id: int, session: Session) -> dict[str, Any]:
             "type": "vote_start",
             "deadline": _aware(trial.vote_deadline).isoformat().replace("+00:00", "Z"),
         }
-    if trial.status != "evidence":
+    total = len(
+        [
+            player
+            for player in trial.match.players
+            if player.is_our_team and player.player_id is not None
+        ]
+    )
+    here = len(trial.attendances)
+    quorum = min(QUORUM_MIN, total)
+    if here < quorum:
+        raise HTTPException(
+            status_code=409, detail=f"quorum not met: {here}/{quorum}"
+        )
+    if trial.status not in {"waiting", "evidence"}:
         raise HTTPException(status_code=409, detail="voting is not ready")
-    if not trial.attendances:
-        raise HTTPException(status_code=409, detail="no players attended")
     started = _now()
     deadline = started + timedelta(seconds=VOTE_SECONDS)
     claimed = await session.execute(
         update(Trial)
-        .where(Trial.id == trial_id, Trial.status == "evidence")
+        .where(Trial.id == trial_id, Trial.status.in_(["waiting", "evidence"]))
         .values(
             status="voting",
             vote_started_at=started,
@@ -476,13 +503,30 @@ async def _settle(session: AsyncSession, trial: Trial) -> dict[str, Any] | None:
             else leaders[0]
         )
     ai_data = _json(trial.ai_verdict_json) or {}
-    verdict_text = ai_data.get("reasoning") or "投票结束"
+    verdict_text = ai_data.get("reasoning") or (
+        "表决结束" if trial.match.we_won else "投票结束"
+    )
+    here = len(trial.attendances)
+    total = len(
+        [
+            player
+            for player in trial.match.players
+            if player.is_our_team and player.player_id is not None
+        ]
+    )
+    attendance = {"here": here, "total": total, "forced": here < total}
+    side_award = pick_side_award(trial.match, guilty_player_id)
+    verdict_payload = {
+        "guilty_player_id": guilty_player_id,
+        "tally": tally,
+        "verdict": verdict_text,
+        "attendance": attendance,
+    }
+    if side_award is not None:
+        verdict_payload["side_award"] = side_award
     trial.status = "closed"
     trial.verdict_player_id = guilty_player_id
-    trial.verdict_json = json.dumps(
-        {"guilty_player_id": guilty_player_id, "tally": tally, "verdict": verdict_text},
-        ensure_ascii=False,
-    )
+    trial.verdict_json = json.dumps(verdict_payload, ensure_ascii=False)
     trial.closed_at = _now()
     await session.commit()
     event = {
@@ -492,9 +536,12 @@ async def _settle(session: AsyncSession, trial: Trial) -> dict[str, Any] | None:
         "ai_verdict_player_id": trial.ai_verdict_player_id,
         "ai_agrees": guilty_player_id == trial.ai_verdict_player_id,
         "verdict": verdict_text,
+        "attendance": attendance,
         # 书记官的改进建议：只有 LLM 会产出，规则引擎没有，前端自行判空
         "advice": ai_data.get("advice") or "",
     }
+    if side_award is not None:
+        event["side_award"] = side_award
     await manager.broadcast(trial.id, event)
     return event
 

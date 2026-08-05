@@ -54,6 +54,8 @@ async def list_matches(
             if player.is_our_team and player.hero_name
         ]
         trial = trials.get(case.id)
+        item.trial_id = trial.id if trial is not None else None
+        item.trial_status = trial.status if trial is not None else None
         if trial is not None and trial.verdict_player_id is not None:
             item.verdict_name = names.get(trial.verdict_player_id)
             item.verdict_note = _verdict_note(trial)
@@ -205,53 +207,64 @@ async def monthly_stats(session: Session) -> dict[str, Any]:
         if now.month == 12
         else datetime(now.year, now.month + 1, 1, tzinfo=UTC)
     )
-    guilty = int(
+    period = (
+        Trial.status == "closed",
+        Trial.closed_at >= month_start,
+        Trial.closed_at < next_month,
+    )
+    trials = int(
         await session.scalar(
-            select(func.count(Trial.id)).where(
-                Trial.status == "closed",
-                Trial.verdict_player_id.is_not(None),
-                Trial.closed_at >= month_start,
-                Trial.closed_at < next_month,
-            )
+            select(func.count(Trial.id))
+            .join(Match, Trial.match_id == Match.id)
+            .where(*period)
         )
         or 0
     )
     wins = int(
         await session.scalar(
             select(func.count(Trial.id))
+            .join(Match, Trial.match_id == Match.id)
+            .where(*period, Match.we_won.is_(True))
+        )
+        or 0
+    )
+    guilty = int(
+        await session.scalar(
+            select(func.count(Trial.id))
+            .join(Match, Trial.match_id == Match.id)
             .where(
-                Trial.status == "closed",
-                Trial.verdict_player_id.is_(None),
-                Trial.closed_at >= month_start,
-                Trial.closed_at < next_month,
+                *period,
+                Match.we_won.is_(False),
+                Trial.verdict_player_id.is_not(None),
             )
         )
         or 0
     )
-    rows = (
-        await session.execute(
-            select(
-                Player.id,
-                Player.display_name,
-                func.count(Trial.id).label("count"),
+
+    async def leaderboard_for(we_won: bool) -> list[dict[str, Any]]:
+        rows = (
+            await session.execute(
+                select(
+                    Player.id,
+                    Player.display_name,
+                    func.count(Trial.id).label("count"),
+                )
+                .join(Trial, Trial.verdict_player_id == Player.id)
+                .join(Match, Trial.match_id == Match.id)
+                .where(*period, Match.we_won.is_(we_won))
+                .group_by(Player.id, Player.display_name)
+                .order_by(func.count(Trial.id).desc(), Player.id)
             )
-            .join(Trial, Trial.verdict_player_id == Player.id)
-            .where(
-                Trial.status == "closed",
-                Trial.closed_at >= month_start,
-                Trial.closed_at < next_month,
-            )
-            .group_by(Player.id, Player.display_name)
-            .order_by(func.count(Trial.id).desc(), Player.id)
-        )
-    ).all()
-    leaderboard = [
-        {"player_id": player_id, "display_name": display_name, "count": count}
-        for player_id, display_name, count in rows
-    ]
+        ).all()
+        return [
+            {"player_id": player_id, "display_name": display_name, "count": count}
+            for player_id, display_name, count in rows
+        ]
+
     return {
-        "trials": wins + guilty,
+        "trials": trials,
         "wins": wins,
         "guilty": guilty,
-        "leaderboard": leaderboard,
+        "leaderboard": await leaderboard_for(False),
+        "mvp_leaderboard": await leaderboard_for(True),
     }
