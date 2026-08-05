@@ -289,9 +289,12 @@ async def coach(
             {"role": "user", "content": "\n".join(lines)},
         ],
         "response_format": {"type": "json_object"},
-        # 思考模式实测 reasoning 就吃掉 1558 tokens，预算必须给够，
-        # 不然 finish_reason=length 整条丢弃，白花钱。
-        "max_tokens": 4000,
+        # 思考模式下 reasoning 与输入长度正相关：精简用例约 1558 tokens，
+        # 但带 4 条 findings + 跨局趋势的真实局面实测会烧穿 4000，
+        # 结果 finish_reason=length 整条丢弃——钱花了、46 秒等了、什么都没拿到。
+        # 给到 8000 留足思考余量；正文本身只有 200 tokens 左右，
+        # 用不到的部分不计费，超发预算不花钱，截断才花冤枉钱。
+        "max_tokens": 8000,
     }
 
     try:
@@ -308,7 +311,16 @@ async def coach(
     try:
         choice = data["choices"][0]
         if choice.get("finish_reason") == "length":
-            logger.warning("教练输出被截断，丢弃")
+            # 把用量打出来：不然下次再撞上限，只能靠猜预算该给多少。
+            usage = data.get("usage") or {}
+            detail = usage.get("completion_tokens_details") or {}
+            logger.warning(
+                "教练输出被截断，丢弃（prompt=%s completion=%s reasoning=%s 上限=%s）",
+                usage.get("prompt_tokens"),
+                usage.get("completion_tokens"),
+                detail.get("reasoning_tokens"),
+                payload["max_tokens"],
+            )
             return None
         result = json.loads(choice["message"]["content"])
     except Exception as error:  # noqa: BLE001
