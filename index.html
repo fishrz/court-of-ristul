@@ -56,6 +56,30 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
 .meBtn.anon{border-style:dashed}
 .meBtn.anon span{color:var(--ember)}
 
+/* 头像本身说明不了自己是干嘛的，title 在手机上又不会显示（没有 hover），
+   所以补一行常驻小字，让入口自己说话。 */
+.meCap{position:absolute;right:16px;top:61px;width:34px;text-align:center;
+  font-size:8.5px;letter-spacing:.06em;color:var(--bone-dim);opacity:.7;
+  line-height:1.25;pointer-events:none;white-space:nowrap;
+  transform:translateX(calc(50% - 17px))}
+.meCap.anon{color:var(--ember);opacity:.85}
+
+/* 首次进入的一次性引导。自动消失，不要求用户点掉。
+   挂在头像正下方而不是左边：标题栏中间是盾牌 logo，气泡横着展开会
+   压在 logo 上，深色叠深色基本读不出字。 */
+.meTip{position:absolute;right:12px;top:76px;width:186px;padding:9px 11px;
+  border:1px solid var(--gold-dim,var(--line));border-radius:var(--r);
+  background:#1c120c;
+  font-size:11px;line-height:1.55;color:var(--bone);letter-spacing:.02em;
+  text-align:left;box-shadow:0 8px 24px rgba(0,0,0,.65);z-index:30;
+  animation:meTipIn .45s ease both}
+.meTip::after{content:'';position:absolute;right:14px;top:-5px;width:8px;height:8px;
+  background:#1c120c;border-left:1px solid var(--gold-dim,var(--line));
+  border-top:1px solid var(--gold-dim,var(--line));transform:rotate(45deg)}
+.meTip.out{animation:meTipOut .4s ease both}
+@keyframes meTipIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@keyframes meTipOut{to{opacity:0;transform:translateY(-6px)}}
+
 /* ── 本人卷宗 ── */
 .idcard{margin:16px;padding:20px;border:1px solid var(--line);border-radius:var(--r);
   background:linear-gradient(160deg,rgba(217,164,65,.09),rgba(18,12,8,.9));text-align:center}
@@ -446,6 +470,7 @@ body{max-width:520px;margin:0 auto;min-height:100vh;position:relative;
       <img id="meBtnImg" alt="" style="display:none">
       <span id="meBtnTxt">?</span>
     </div>
+    <div class="meCap" id="meCap">本人卷宗</div>
   </div>
 
   <div class="summons" id="summons" onclick="go('W')">
@@ -1262,6 +1287,7 @@ function renderMeBtn(){
   const { player } = meInfo();
   const img = document.getElementById('meBtnImg');
   const txt = document.getElementById('meBtnTxt');
+  const cap = document.getElementById('meCap');
   if(player && player.avatar_url){
     img.src = player.avatar_url; img.style.display='';
     txt.style.display='none'; btn.classList.remove('anon');
@@ -1273,6 +1299,50 @@ function renderMeBtn(){
     img.style.display='none'; txt.style.display='';
     txt.textContent = '?'; btn.classList.add('anon');   // 虚线圈=尚未登记
   }
+  if(cap){
+    // 未登记的人点进去只会看到「前往登记」，那就直接把这句话写在外面，
+    // 别骗他进去找战绩。
+    cap.textContent = player ? '本人卷宗' : '登记';
+    cap.classList.toggle('anon', !player);
+    btn.title = player ? '本人卷宗 · 战绩与复盘' : '登记你的 Steam 身份';
+  }
+  maybeShowMeTip(!!player);
+}
+
+/* 头像是个没有标签的圆圈，谁也猜不到里面是自己的战绩分析。
+   首次进入弹一次气泡，看过就不再打扰；点头像也立即收起。 */
+function maybeShowMeTip(registered){
+  const KEY = 'cor.metip.seen';
+  let seen = false;
+  try { seen = localStorage.getItem(KEY) === '1'; } catch(e){ seen = true; }
+  if(seen) return;
+  if(document.getElementById('meTip')) return;
+
+  // renderMeBtn 会在玩家名单到位前先跑一次，那时 meInfo() 找不到人，
+  // 会把已登记用户误判成未登记。气泡只弹一次，抢跑就会显示错的文案，
+  // 所以本地存了 steam_id 但还没匹配上玩家时先不弹，等下一次渲染。
+  let sid = null;
+  try { sid = localStorage.getItem('cor.steam_id'); } catch(e){}
+  if(sid && !registered) return;
+
+  const anchor = document.getElementById('meBtn');
+  if(!anchor || !anchor.parentNode) return;
+
+  const tip = document.createElement('div');
+  tip.className = 'meTip'; tip.id = 'meTip';
+  tip.textContent = registered
+    ? '点这里看你的战绩、英雄池和每局复盘'
+    : '点这里登记身份，之后就能看自己的战绩和复盘';
+  anchor.parentNode.appendChild(tip);
+
+  const dismiss = ()=>{
+    try { localStorage.setItem(KEY, '1'); } catch(e){}
+    tip.classList.add('out');
+    setTimeout(()=>tip.remove(), 400);
+    anchor.removeEventListener('click', dismiss);
+  };
+  anchor.addEventListener('click', dismiss);
+  setTimeout(()=>{ if(document.getElementById('meTip')) dismiss(); }, 6000);
 }
 
 /* renderMe() 已移到 dossier.js —— 卷宗从「我是谁」扩成成长页，
