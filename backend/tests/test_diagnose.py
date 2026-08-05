@@ -169,6 +169,39 @@ class TestLane:
         found = diagnose.diagnose_lane(facts)
         assert not any(f["kind"] == "tp_scarce" for f in found)
 
+    def test_travel_boots_excuses_low_tp(self):
+        """出了飞鞋就该少买 TP 卷，这是正确决策不是坏习惯。"""
+        facts = _facts(
+            items={"timings": {}, "tp_bought": 6, "travel_boots_at": 1500},
+            curve={"lh_t": list(range(63))},
+        )
+        found = diagnose.diagnose_lane(facts)
+        assert not any(f["kind"] == "tp_scarce" for f in found)
+
+    def test_high_death_time_excuses_low_tp(self):
+        """躺尸太久时买不了也用不上 TP，低 TP 是死亡的结果不是原因。
+
+        这条防的是拿下游症状冒充根因——躺尸本身已经由
+        diagnose_deaths 单独报了，不需要再借 TP 之口重复指控一次。
+        """
+        facts = _facts(
+            items={"timings": {}, "tp_bought": 6},
+            curve={"lh_t": list(range(63))},
+            deaths={"dead_pct": 18.0, "dead_seconds": 700},
+        )
+        found = diagnose.diagnose_lane(facts)
+        assert not any(f["kind"] == "tp_scarce" for f in found)
+
+    def test_low_tp_still_flagged_when_no_excuse(self):
+        """没飞鞋、躺尸也正常，那才是真的忘了买。"""
+        facts = _facts(
+            items={"timings": {}, "tp_bought": 6},
+            curve={"lh_t": list(range(63))},
+            deaths={"dead_pct": 5.0, "dead_seconds": 180},
+        )
+        found = diagnose.diagnose_lane(facts)
+        assert any(f["kind"] == "tp_scarce" for f in found)
+
 
 class TestTrend:
     def test_insufficient_history_says_nothing(self):

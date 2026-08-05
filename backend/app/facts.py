@@ -160,6 +160,20 @@ def extract_items(raw_player: dict[str, Any]) -> dict[str, Any]:
     tp = _num(raw_player.get("purchase_tpscroll"))
     if tp is not None:
         out["tp_bought"] = int(tp)
+
+    # 飞鞋自带传送，成型后 TP 卷买得少是正确决策而不是坏习惯。
+    # 不记这个，低 TP 就会被误判成「不会支援」。
+    # 两种飞鞋 key 都要认，OpenDota 升级款是 travel_boots_2。
+    if isinstance(log, list):
+        for entry in log:
+            if not isinstance(entry, dict):
+                continue
+            name = str(entry.get("key") or "")
+            time_s = _num(entry.get("time"))
+            if name.startswith("travel_boots") and time_s is not None and time_s >= 0:
+                prev = out.get("travel_boots_at")
+                if prev is None or int(time_s) < prev:
+                    out["travel_boots_at"] = int(time_s)
     return out
 
 
