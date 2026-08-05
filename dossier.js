@@ -115,9 +115,16 @@ function dsDetail() {
   const cached = Dossier.coachCache[dt.match_id];
   let coach;
   if (cached && cached.available) {
+    // 字段名以后端 ai.coach() 的返回为准：root_cause / action / evidence /
+    // why_not_others。曾经这里写的是 reasoning / advice，两个都不存在，
+    // 结果框子渲染出来但内容全空——等了 13 秒看到个空壳。
+    const ev = (cached.evidence || []).map(
+      e => `<div class="cev">· ${esc(e)}</div>`).join('');
     coach = `<div class="coachbox"><div class="ch">教 练 复 盘</div>
-      <div class="cb">${esc(cached.reasoning || '')}</div>
-      ${cached.advice ? `<div class="cb" style="margin-top:10px;color:var(--gold)">${esc(cached.advice)}</div>` : ''}
+      <div class="cb">${esc(cached.root_cause || '')}</div>
+      ${ev ? `<div class="cevs">${ev}</div>` : ''}
+      ${cached.why_not_others ? `<div class="cb cwhy">${esc(cached.why_not_others)}</div>` : ''}
+      ${cached.action ? `<div class="cb cact">下一局：${esc(cached.action)}</div>` : ''}
     </div>`;
   } else if (cached) {
     // 降级要安静：LLM 不可用不是用户的错，也不该显示成故障

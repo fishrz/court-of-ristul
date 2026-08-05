@@ -34,7 +34,8 @@ async function api(path, opts) {
 
 const POS_CN = {
   carry: "一号位", mid: "中单", offlane: "三号位",
-  support: "五号位", hard_support: "五号位", core: "核心位"
+  soft_support: "四号位", hard_support: "五号位",
+  support: "辅助", core: "核心位"
 };
 
 function fmtDur(sec) {
