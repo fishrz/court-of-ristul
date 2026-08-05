@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from collections import defaultdict
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Protocol
@@ -27,12 +27,22 @@ MIN_REGISTERED = 3
 MIN_PARTY_SIZE = 3
 
 
-def _qualifies(members: Mapping[int, Mapping[str, Any]]) -> bool:
+def _qualifies(members: Mapping[int, Mapping[str, Any]]) -> bool | None:
+    """够格建案返回 True，明确不够格返回 False，暂时判断不了返回 None。
+
+    三态是必须的。OpenDota 的 party_size 只有在这局被 parse 之后才有值，
+    新打完的局一律是 None。旧代码写 `(party_size or 0) >= 3`，把「还不知道」
+    当成了「就是 0」，结果最新的五黑局必然在第一次轮询时被判死刑，而且
+    再也没有第二次机会——这正是漏局的根因。
+    """
     if len(members) >= MIN_REGISTERED:
         return True
-    return any(
-        (recent.get("party_size") or 0) >= MIN_PARTY_SIZE for recent in members.values()
-    )
+    sizes = [recent.get("party_size") for recent in members.values()]
+    if any(size is not None and size >= MIN_PARTY_SIZE for size in sizes):
+        return True
+    if all(size is None for size in sizes):
+        return None  # 还没 parse，等下一轮拿到真实开黑人数再说
+    return False
 
 
 class PollClient(Protocol):
@@ -64,9 +74,16 @@ async def poll_once(session: AsyncSession, client: PollClient) -> int:
 
     created = 0
     for (match_id, radiant_side), members in candidates.items():
-        if not _qualifies(members):
+        verdict = _qualifies(members)
+        if verdict is False:
             continue
         if await session.scalar(select(Match.id).where(Match.match_id == match_id)):
+            continue
+        if verdict is None:
+            # 开黑人数还不知道（这局没 parse）。主动请求解析，本轮不建案，
+            # 下一轮 party_size 有值了再判。宁可晚 5 分钟，也不能像以前
+            # 那样把未知直接当 0 永久丢弃。
+            await client.request_parse(match_id)
             continue
         sample = next(iter(members.values()))
         radiant_win = sample.get("radiant_win")
@@ -114,17 +131,79 @@ def _match_is_parsed(data: Any) -> bool:
 
 
 def _lane_role(player: Mapping[str, Any]) -> str | None:
+    """单人兜底：没有全队上下文时只能给出粗略分路。
+
+    注意 OpenDota 的 lane_role 表示的是「在哪条路」，不是「打几号位」。
+    一号位和他的辅助站同一条路，拿到的是同一个 lane_role，所以单看这个
+    字段永远分不出核心和辅助。真正的定位请用 _assign_roles()。
+    """
     lane = player.get("lane_role")
     if player.get("is_roaming") or lane == 4:
         return "support"
     return {1: "carry", 2: "mid", 3: "offlane"}.get(lane)
 
 
+# 每条路的核心位与辅助位。lane 编号是天辉视角：1=优势路 2=中路 3=劣势路。
+_LANE_SLOTS = {
+    1: ("carry", "hard_support"),
+    2: ("mid", "mid"),
+    3: ("offlane", "soft_support"),
+}
+
+
+def _assign_roles(players: Sequence[Mapping[str, Any]]) -> dict[int, str]:
+    """按 Dotabuff/STRATZ 的做法定位置：先分路，再在同一条路内按经济排序。
+
+    为什么不能直接用 lane_role：它是分路标签，不是位置标签。同一条路上的
+    核心和辅助共享同一个值，直接映射会让每个阵营都冒出两个「一号位」——
+    实测抽查的每一局、每一个阵营都中招，树精卫士被判成一号位就是这么来的。
+
+    经济排序能work，是因为分路是客观事实（站位决定），而同路两人谁吃线谁
+    让线，净资产差距是Dota的基本规律，不依赖任何猜测。
+
+    返回 player_slot -> 位置。拿不到 lane 的人留空由调用方兜底。
+    """
+    roles: dict[int, str] = {}
+    for radiant in (True, False):
+        side = [
+            p for p in players if _is_radiant(int(p.get("player_slot") or 0)) == radiant
+        ]
+        by_lane: dict[Any, list[Mapping[str, Any]]] = {}
+        for player in side:
+            lane = player.get("lane")
+            if lane is None:
+                continue
+            # 夜魇的优势路是地图另一侧，lane 1/3 语义相反，翻转后才是同一条路
+            if not radiant and lane in (1, 3):
+                lane = 4 - lane
+            by_lane.setdefault(lane, []).append(player)
+        for lane, group in by_lane.items():
+            if lane not in _LANE_SLOTS:
+                continue  # lane 4 = 野区/游走，没有稳定的同路对比基准
+            group = sorted(group, key=lambda p: p.get("net_worth") or 0, reverse=True)
+            core, support = _LANE_SLOTS[lane]
+            for index, player in enumerate(group):
+                slot = player.get("player_slot")
+                if slot is not None:
+                    roles[int(slot)] = core if index == 0 else support
+    return roles
+
+
 def _metric_player(
-    player: Mapping[str, Any], damage_total: int, net_worth_total: int, duration: Any
+    player: Mapping[str, Any],
+    damage_total: int,
+    net_worth_total: int,
+    duration: Any,
+    roles: Mapping[int, str] | None = None,
 ) -> dict[str, Any]:
     item_uses = player.get("item_uses") or {}
     lh_t = player.get("lh_t") or []
+    slot = player.get("player_slot")
+    role = None
+    if roles is not None and slot is not None:
+        role = roles.get(int(slot))
+    if role is None:
+        role = _lane_role(player)  # 没有全队上下文时的粗略兜底
     metrics = dict(player)
     metrics.update(
         id=player.get("account_id"),
@@ -132,7 +211,7 @@ def _metric_player(
         hero=player.get("hero_name")
         or _hero_name(player.get("hero_id"))
         or str(player.get("hero_id") or "Unknown"),
-        role=_lane_role(player),
+        role=role,
         gpm=player.get("gold_per_min"),
         xpm=player.get("xp_per_min"),
         lh_at_10=lh_t[9] if len(lh_t) > 9 else None,
@@ -166,8 +245,12 @@ async def _store_parsed_match(
     ]
     damage_total = sum(int(player.get("hero_damage") or 0) for player in our_raw)
     net_worth_total = sum(int(player.get("net_worth") or 0) for player in our_raw)
+    # 位置要看全场十个人（同路对比），不能逐人算
+    roles = _assign_roles(raw_players)
     team = [
-        _metric_player(player, damage_total, net_worth_total, data.get("duration"))
+        _metric_player(
+            player, damage_total, net_worth_total, data.get("duration"), roles
+        )
         for player in our_raw
     ]
     result = accuse(
@@ -197,6 +280,7 @@ async def _store_parsed_match(
             damage_base,
             sum(int(player.get("net_worth") or 0) for player in side),
             data.get("duration"),
+            roles,
         )
         known_player = player_by_steam_id.get(raw_player.get("account_id"))
         session.add(

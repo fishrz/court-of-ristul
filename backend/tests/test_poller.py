@@ -65,7 +65,9 @@ async def test_poll_creates_case_when_enough_registered_teammates(
 
     count = await session.scalar(select(func.count()).select_from(Match))
     assert count == expected_cases
-    assert client.parse_requests == ([8917764448] if expected_cases else [])
+    # 登记人数不够时 fixture 的 party_size 是 None（未解析），此时开黑人数
+    # 未知，不能当成 0 直接丢弃——请求 parse，下一轮拿到 party_size 再判。
+    assert client.parse_requests == [8917764448]
 
 
 @pytest.mark.asyncio

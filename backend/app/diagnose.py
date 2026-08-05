@@ -241,13 +241,27 @@ def diagnose_lane(facts: dict[str, Any]) -> list[dict[str, Any]]:
 
     tp = (facts.get("items") or {}).get("tp_bought")
     duration_min = len(curve.get("lh_t") or [])
-    # 一局 40 分钟只买 6 个 TP，等于绝大部分时间没有支援能力。
-    # 阈值取「每 6 分钟至少 1 个」，比较宽松，只抓明显的坏习惯。
-    if tp is not None and duration_min >= 25 and tp < duration_min / 6:
+    # TP 数量单独看是个坏指标，低 TP 至少有三种成因，只有一种是坏习惯：
+    #   1. 真的忘了买 —— 这才是我们想抓的
+    #   2. 出了飞鞋 —— 自带传送，少买 TP 卷是正确决策
+    #   3. 死太多 —— 躺尸时买不了也用不上，低 TP 是死亡的结果不是原因
+    # 后两种都得先排除掉，否则就是拿下游症状当根因，
+    # 跟「推塔低所以你不推塔」是同一类错误。
+    travel_at = (facts.get("items") or {}).get("travel_boots_at")
+    dead_pct = (facts.get("deaths") or {}).get("dead_pct")
+    tp_noisy = travel_at is not None or (
+        dead_pct is not None and dead_pct >= DEAD_PCT_BAD
+    )
+    if (
+        tp is not None
+        and duration_min >= 25
+        and tp < duration_min / 6
+        and not tp_noisy
+    ):
         out.append(
             _finding(
                 "tp_scarce",
-                f"全局只买了 {tp} 个 TP（{duration_min} 分钟的局）",
+                f"全局只买了 {tp} 个 TP（{duration_min} 分钟的局，且没出飞鞋）",
                 "TP 是最便宜的翻盘道具，下局保持身上常备一个",
                 severity="warn",
             )
