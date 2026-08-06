@@ -108,7 +108,10 @@ async def poll_once(session: AsyncSession, client: PollClient) -> int:
     parsing = list(
         await session.scalars(select(Match).where(Match.parse_status == "parsing"))
     )
-    player_by_steam_id = {player.steam_id: player for player in active_players}
+    # is_active 只控制「从谁的 recentMatches 发现新比赛」，不能控制身份回链。
+    # 已登记但停用的队友仍可能出现在比赛里，也必须写入 player_id。
+    registered_players = list(await session.scalars(select(Player)))
+    player_by_steam_id = {player.steam_id: player for player in registered_players}
     for case in parsing:
         data = await client.get_match(case.match_id)
         if _match_is_parsed(data):

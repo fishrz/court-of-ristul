@@ -164,3 +164,49 @@ async def test_poll_stores_parsed_metrics_and_attribution(session: AsyncSession)
     assert len(stored_players) == 10
     assert stored_players[0].lh_at_10 == 40
     assert stored_players[0].tp_uses == 8
+
+
+@pytest.mark.asyncio
+async def test_poll_links_inactive_registered_player_in_parsed_match(
+    session: AsyncSession,
+) -> None:
+    active_players = await seed_players(session, count=3)
+    teammate = Player(steam_id=2000, display_name="常驻队友", is_active=False)
+    session.add(teammate)
+    await session.commit()
+    parsed_players = [
+        {
+            "account_id": player.steam_id,
+            "player_slot": index,
+            "hero_id": index + 1,
+            "personaname": player.display_name,
+        }
+        for index, player in enumerate([*active_players, teammate])
+    ]
+    parsed_players.extend(
+        {"account_id": 3000 + index, "player_slot": 128 + index, "hero_id": 10 + index}
+        for index in range(5)
+    )
+    client = FakeOpenDotaClient(
+        {
+            player.steam_id: [recent_match(8927547211)]
+            for player in active_players
+        },
+        {
+            8927547211: {
+                "match_id": 8927547211,
+                "version": 21,
+                "radiant_win": True,
+                "players": parsed_players,
+            }
+        },
+    )
+
+    await poll_once(session, client)
+
+    stored = await session.scalar(
+        select(MatchPlayer)
+        .join(Match)
+        .where(Match.match_id == 8927547211, MatchPlayer.hero_id == 4)
+    )
+    assert stored.player_id == teammate.id
