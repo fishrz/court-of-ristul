@@ -1532,7 +1532,7 @@ function poke(el,i){
 /* ── 开庭门槛（裁决书 B 节）──
    门槛数字一律由 API 下发（quorum / attendee_count / can_start），前端不写死。
    前端 disabled 只是解释，真正的防线是后端 start-vote 的 409。 */
-let QUORUM = { quorum: null, here: 0, total: 0, can_start: false };
+let QUORUM = { quorum: null, here: 0, total: 0, can_start: false, eligible: null };
 window.QUORUM = QUORUM;
 
 function setQuorum(t){
@@ -1540,9 +1540,11 @@ function setQuorum(t){
   QUORUM.quorum = t.quorum ?? null;
   QUORUM.here   = t.attendee_count ?? t.here ?? 0;
   QUORUM.total  = t.total ?? SEATS.length;
+  // eligible=false 表示已登记候选不足，本局不可开庭；后端未下发时按 null 处理（不臆断）
+  QUORUM.eligible = t.eligible != null ? !!t.eligible : null;
   QUORUM.can_start = t.can_start != null
     ? !!t.can_start
-    : (QUORUM.quorum != null && QUORUM.here >= QUORUM.quorum);
+    : (QUORUM.eligible !== false && QUORUM.quorum != null && QUORUM.here >= QUORUM.quorum);
   window.QUORUM = QUORUM;
   updateWaitCount();
 }
@@ -1580,8 +1582,11 @@ function updateWaitCount(){
   const qbox = document.getElementById('wQuorum');
   if(!goBtn || !f) return;
 
-  const full = total > 0 && here >= total;
-  const canStart = QUORUM.can_start || full;
+  // eligible=false 时该局不可开庭，full（到齐）也不能作为放行理由，
+  // 否则单人登记局会因 here>=total 而点亮「开庭」，走进必然 409 的死路。
+  const ineligible = QUORUM.eligible === false;
+  const full = !ineligible && total > 0 && here >= total;
+  const canStart = !ineligible && (QUORUM.can_start || full);
 
   // 全员到齐：正常开庭；否则「提前开庭」按门槛决定能不能点
   goBtn.disabled = !full;
@@ -1594,11 +1599,12 @@ function updateWaitCount(){
 
   if(qbox){
     if(quorum == null){ qbox.style.display = 'none'; }
-    else if(total < 3){
-      // 门槛因登记人数不足而下调，必须说出来，不静默降级
+    else if(QUORUM.eligible === false){
+      // 已登记候选不足 3 人（路人局/单排局），本局根本不能开庭。
+      // 后端 start-vote 会返回 409，这里必须如实说明而不是假装能开。
       qbox.style.display = '';
       qbox.className = 'quorum short';
-      qbox.textContent = '本局仅 ' + total + ' 人已登记，门槛降至 ' + quorum + ' 人。';
+      qbox.textContent = '本局只有 ' + total + ' 位已登记队友，凑不满 ' + quorum + ' 人法庭，无法开庭。';
     } else if(!canStart){
       qbox.style.display = '';
       qbox.className = 'quorum short';
@@ -1720,6 +1726,13 @@ function pick(i){
 function castVote(){
   // 联机：投票交给服务端，唱票与结算都等广播，本地不自行判决
   if(window.Trial && Trial.id && Trial.me != null){ return castVoteLive(); }
+  // 联机局但本机没有身份：绝不能掉进下面的本地模拟投票，
+  // 否则会出现"没人参与却自动投完并自动判决"。此处必须停住并要求登记。
+  if(window.Trial && Trial.id){
+    const b=document.getElementById('voteBtn');
+    if(b){ b.disabled=true; b.textContent='请先登记身份才能表决'; }
+    return;
+  }
   clearInterval(timerId);
   // 五人局：你 1 票 + 队友 4 票 = 5 票，总数必须恒为 5
   const nodes=document.querySelectorAll('.nom');
