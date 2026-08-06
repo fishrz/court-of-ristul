@@ -55,7 +55,10 @@ def _trial_payload(trial: Trial, tally: dict[str, int]) -> dict[str, Any]:
         ]
     )
     attendee_count = len(trial.attendances)
-    quorum = min(QUORUM_MIN, total)
+    # quorum 恒为 QUORUM_MIN；已登记候选不足时该局本就不可开庭，
+    # 由 eligible=False 告知前端，而不是把门槛降到 1。
+    quorum = QUORUM_MIN
+    eligible = total >= QUORUM_MIN
     payload = TrialRead.model_validate(trial).model_dump(mode="json")
     payload.update(
         attendances=[item.player_id for item in trial.attendances],
@@ -63,7 +66,8 @@ def _trial_payload(trial: Trial, tally: dict[str, int]) -> dict[str, Any]:
         attendee_count=attendee_count,
         total=total,
         quorum=quorum,
-        can_start=attendee_count >= quorum,
+        eligible=eligible,
+        can_start=eligible and attendee_count >= quorum,
         tally=tally,
         # 投票明细：让客户端在重连后能还原"谁投了谁"，
         # 仅有聚合 tally 时无法判断本人是否已投过票。
@@ -375,7 +379,14 @@ async def start_vote(trial_id: int, session: Session) -> dict[str, Any]:
         ]
     )
     here = len(trial.attendances)
-    quorum = min(QUORUM_MIN, total)
+    # 已登记的我方候选不足 QUORUM_MIN 时（路人局/单排局），
+    # 不允许把 quorum 降到 1——否则一个人就能开庭并自动判决。
+    if total < QUORUM_MIN:
+        raise HTTPException(
+            status_code=409,
+            detail=f"not enough registered players: {total}/{QUORUM_MIN}",
+        )
+    quorum = QUORUM_MIN
     if here < quorum:
         raise HTTPException(
             status_code=409, detail=f"quorum not met: {here}/{quorum}"
@@ -471,7 +482,9 @@ async def cast_vote(
         "tally": tally,
     }
     await manager.broadcast(trial_id, event)
-    if len(trial.votes) == len(attendees):
+    # 结算同样受法定人数约束：开庭时达标不代表结算时仍达标，
+    # 且不足 QUORUM_MIN 人时绝不允许"一人投完即判决"。
+    if len(attendees) >= QUORUM_MIN and len(trial.votes) == len(attendees):
         await _settle(session, trial)
     return event
 
