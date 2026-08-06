@@ -36,6 +36,12 @@ class PlayerRead(ORMModel):
     created_at: datetime
 
 
+class PlayerOption(ORMModel):
+    id: int
+    display_name: str
+    avatar_url: str | None
+
+
 class MatchPlayerRead(ORMModel):
     id: int
     match_id: int
@@ -94,6 +100,8 @@ class MatchListItem(ORMModel):
     heroes: list[str] = []
     verdict_name: str | None = None
     verdict_note: str | None = None
+    trial_status: TrialStatus | None = None
+    trial_id: int | None = None
 
 
 class TrialRead(ORMModel):

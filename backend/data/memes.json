@@ -2,7 +2,7 @@
   "version": "1.0.0",
   "updated": "2026-07-30",
   "meta": {
-    "total": 63,
+    "total": 89,
     "sources": [
       "贴吧",
       "NGA",
@@ -1982,6 +1982,988 @@
       }
     },
     {
+      "id": "victory_carry_output",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "damage_share",
+            "op": ">=",
+            "value": 0.28
+          },
+          {
+            "metric": "gold_share",
+            "op": ">=",
+            "value": 0.22
+          }
+        ]
+      },
+      "requires": [
+        "damage_share",
+        "gold_share"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "大哥爆发",
+        "fact": "伤害占比 {damage_share}，经济 {gold_share}，输出与资源全部兑现。",
+        "quip": "吃就吃到位，打就打出来，大哥今天有交代。",
+        "verdict": "本庭记录：核心位发挥称职，资源转化率正常。",
+        "share": "输出 {damage_share} · 经济 {gold_share}",
+        "safe": "核心位经济与输出同步在线，表现称职。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_kill_machine",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "meme"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 12
+          },
+          {
+            "metric": "deaths",
+            "op": "<=",
+            "value": 4
+          }
+        ]
+      },
+      "requires": [
+        "kills",
+        "deaths"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "人头机器",
+        "fact": "{kills} 击杀 {deaths} 死亡，对面今晚没睡好。",
+        "quip": "这个游戏叫不死，不多解释。",
+        "verdict": "本庭记录：击杀数据扎实，判无异议。",
+        "share": "{kills}/{deaths} 人头比",
+        "safe": "击杀数突出，死亡可控，贡献显著。"
+      },
+      "variants": [
+        {
+          "quip": "打架从来没输过这个说法，今天暂时成立。"
+        },
+        {
+          "quip": "{kills} 个，一个都不多数，但够了。"
+        }
+      ],
+      "source": {
+        "origin": "游戏内/YYF语录",
+        "raw": "这个游戏叫不死 / 打架从来没输过",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_support_ward",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "obs_placed",
+            "op": ">=",
+            "value": 12
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "support",
+              "hard_support"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "obs_placed"
+      ],
+      "forbidden_context": [
+        "defeat",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "视野大师",
+        "fact": "插了 {obs_placed} 个假眼，地图上灯火通明。",
+        "quip": "辅助的眼买够了，大哥才能安心发育。今天做到了。",
+        "verdict": "本庭记录：视野贡献到位，团队基础工作称职。",
+        "share": "{obs_placed} 假眼",
+        "safe": "视野覆盖充分，辅助基础工作到位。"
+      },
+      "variants": [
+        {
+          "quip": "全图当摄像头，地方没一个角落是黑的。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_teamfight_anchor",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "teamfight_participation",
+            "op": ">=",
+            "value": 0.85
+          },
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 5
+          }
+        ]
+      },
+      "requires": [
+        "teamfight_participation",
+        "kills"
+      ],
+      "forbidden_context": [
+        "defeat",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "团战支柱",
+        "fact": "参团率 {teamfight_participation}，参与了几乎每一场战斗。",
+        "quip": "有你在的团战没有一场缺席。这叫大哥带队。",
+        "verdict": "本庭记录：团战参与度优秀，核心贡献明确。",
+        "share": "参团 {teamfight_participation}",
+        "safe": "团战参与率极高，是队伍战斗核心。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_tower_breaker",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "tower_damage",
+            "op": ">=",
+            "value": 5000
+          }
+        ]
+      },
+      "requires": [
+        "tower_damage"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "推塔选手",
+        "fact": "全场塔伤 {tower_damage}，把优势真正转化成了地图资源。",
+        "quip": "上高，推掉，走。这波没毛病。",
+        "verdict": "本庭记录：目标推进贡献出色，战略执行到位。",
+        "share": "塔伤 {tower_damage}",
+        "safe": "推塔贡献突出，有效转化了战斗优势。"
+      },
+      "variants": [
+        {
+          "quip": "胜利的秘诀：高地打下来，兵线推进去。今天做到了。"
+        }
+      ],
+      "source": {
+        "origin": "游戏内常用语",
+        "raw": "上高 / 推掉",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_gank_kda",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "kda_ratio",
+            "op": ">=",
+            "value": 6.0
+          },
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 8
+          }
+        ]
+      },
+      "requires": [
+        "kda_ratio",
+        "kills"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "KDA封神",
+        "fact": "KDA {kda_ratio}，{kills} 击杀，比分漂亮得不像话。",
+        "quip": "三次开雾抓死中路，节奏是你带起来的。",
+        "verdict": "本庭记录：KDA 数据优秀，开雾游走贡献显著。",
+        "share": "KDA {kda_ratio}",
+        "safe": "KDA 表现优秀，对局贡献突出。"
+      },
+      "variants": [
+        {
+          "quip": "你的 KDA 是本庭见过最干净的数据之一。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": "三次开雾抓死中路 = 早期 gank 节奏典型描述"
+      }
+    },
+    {
+      "id": "victory_fast_win",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "meme"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "duration",
+            "op": "<=",
+            "value": 1800
+          },
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 5
+          }
+        ]
+      },
+      "requires": [
+        "duration",
+        "kills"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "短平快",
+        "fact": "{duration} 秒终局，对面连喘气的机会都没给。",
+        "quip": "速推，速胜，对面高地没上去就结束了。",
+        "verdict": "本庭记录：节奏掌控到位，速胜有理有据。",
+        "share": "{duration} 速推",
+        "safe": "节奏掌控出色，速胜效率高。"
+      },
+      "variants": [
+        {
+          "quip": "这把就是一个字：快。快到对面还没反应过来。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_high_gpm",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "gpm",
+            "op": ">=",
+            "value": 650
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "core",
+              "carry",
+              "mid"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "gpm"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "肥到爆",
+        "fact": "GPM {gpm}，发育速度碾压全场。",
+        "quip": "这个游戏叫我很肥，不一样的是今天真的赢了。",
+        "verdict": "本庭记录：经济发展效率一流，奠定胜局基础。",
+        "share": "GPM {gpm}",
+        "safe": "经济效率出色，发育优势转化为胜势。"
+      },
+      "variants": [
+        {
+          "quip": "肥到一定程度，对面的抵抗就是在演戏。"
+        }
+      ],
+      "source": {
+        "origin": "YYF语录化用",
+        "raw": "这个游戏叫我很肥好吧",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_roshan",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "roshan_kills",
+            "op": ">=",
+            "value": 2
+          }
+        ]
+      },
+      "requires": [
+        "roshan_kills"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "肉山猎手",
+        "fact": "全场 {roshan_kills} 次肉山，肉山钥匙全在自己手里。",
+        "quip": "肉山打两次，对面的翻盘窗口已经关上了。",
+        "verdict": "本庭记录：肉山资源控制到位，胜局关键节点掌握充分。",
+        "share": "{roshan_kills} 次肉山",
+        "safe": "肉山资源控制出色，为胜利奠定关键优势。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_support_stun",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "stuns",
+            "op": ">=",
+            "value": 40
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "support",
+              "hard_support",
+              "offlane"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "stuns"
+      ],
+      "forbidden_context": [
+        "defeat",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "控场专家",
+        "fact": "全场控制时长 {stuns} 秒，打得对面寸步难行。",
+        "quip": "你一个控技能顶三个输出——这叫控场辅助该有的样子。",
+        "verdict": "本庭记录：控制贡献关键，是团队胜利的重要支撑。",
+        "share": "控场 {stuns}s",
+        "safe": "控制技能发挥出色，是团队战斗的重要支撑。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_buyback_clutch",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "meme"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "buyback_count",
+            "op": ">=",
+            "value": 2
+          },
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 6
+          }
+        ]
+      },
+      "requires": [
+        "buyback_count",
+        "kills"
+      ],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "买活换胜利",
+        "fact": "{buyback_count} 次买活，每一次都没白花。",
+        "quip": "钱花出去了，但赢了。账算得清楚。",
+        "verdict": "本庭记录：关键节点买活决策正确，转危为安。",
+        "share": "{buyback_count} 次买活",
+        "safe": "买活时机把握到位，关键时刻保住了战线。"
+      },
+      "variants": [
+        {
+          "quip": "买活不丢人，丢的是那些没买但输了的局。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "victory_lane_cs",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "lh_at_10",
+            "op": ">=",
+            "value": 55
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "core",
+              "carry",
+              "mid"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "lh_at_10"
+      ],
+      "forbidden_context": [
+        "defeat",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "对线压制",
+        "fact": "10 分钟正补 {lh_at_10}，对线期建立了明显优势。",
+        "quip": "这补刀数字出来，对面那条路的人当场社死。",
+        "verdict": "本庭记录：对线期表现出色，为后期发育奠定基础。",
+        "share": "10分钟 {lh_at_10} 刀",
+        "safe": "对线期补刀领先，发育优势明显。"
+      },
+      "variants": [
+        {
+          "quip": "对线就是对线，十分钟{lh_at_10}刀，不需要多解释。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_good_kda",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "kda_ratio",
+            "op": ">=",
+            "value": 4.0
+          },
+          {
+            "metric": "deaths",
+            "op": "<=",
+            "value": 3
+          }
+        ]
+      },
+      "requires": [
+        "kda_ratio",
+        "deaths"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "个人无愧",
+        "fact": "KDA {kda_ratio}，{deaths} 次死亡，你的账本是干净的。",
+        "quip": "输了，但不是你的锅。数据摆着呢。",
+        "verdict": "本庭认定：个人发挥合格，本局失利另有归因。",
+        "safe": "个人KDA表现良好，为团队尽了力。"
+      },
+      "variants": [
+        {
+          "quip": "这种 KDA 怎么还输？问问队友去。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_high_damage",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "damage_share",
+            "op": ">=",
+            "value": 0.28
+          }
+        ]
+      },
+      "requires": [
+        "damage_share"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "输出不虚",
+        "fact": "伤害占比 {damage_share}，你在打架，真的在打。",
+        "quip": "输出给到位了，队伍没接住，下次再说。",
+        "verdict": "本庭认定：个人输出表现称职，战局失利另有原因。",
+        "safe": "伤害输出充分，个人贡献到位。"
+      },
+      "variants": [
+        {
+          "quip": "{damage_share} 的伤害，你该打的都打了，再多也要队友配合。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_support_ward",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "obs_placed",
+            "op": ">=",
+            "value": 10
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "support",
+              "hard_support"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "obs_placed"
+      ],
+      "forbidden_context": [
+        "victory",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "眼没少买",
+        "fact": "{obs_placed} 个假眼插下去，视野你做到了。",
+        "quip": "辅助能做的你都做了，眼是买的，锅不是你的。",
+        "verdict": "本庭认定：视野贡献合格，辅助职责尽到。",
+        "safe": "视野覆盖充分，辅助基础工作到位。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_stun_hero",
+      "category": "consolation",
+      "severity": 1,
+      "tone": [
+        "comfort",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "stuns",
+            "op": ">=",
+            "value": 30
+          }
+        ]
+      },
+      "requires": [
+        "stuns"
+      ],
+      "forbidden_context": [
+        "victory",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "控场到位",
+        "fact": "控制时长 {stuns} 秒，技能释放没有白费。",
+        "quip": "控得很好，就是被控的人没把机会转化出来。",
+        "verdict": "本庭认定：控场技能发挥合格，战机创造充分。",
+        "safe": "控场贡献充分，个人操作表现到位。"
+      },
+      "variants": [
+        {
+          "quip": "{stuns}s 的控制，你的技能不欠他们的。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_long_game",
+      "category": "consolation",
+      "severity": 1,
+      "tone": [
+        "comfort"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "duration",
+            "op": ">=",
+            "value": 3000
+          },
+          {
+            "metric": "teamfight_participation",
+            "op": ">=",
+            "value": 0.7
+          }
+        ]
+      },
+      "requires": [
+        "duration",
+        "teamfight_participation"
+      ],
+      "forbidden_context": [
+        "victory",
+        "data_incomplete"
+      ],
+      "text": {
+        "tag": "鏖战不弃",
+        "fact": "打了 {duration} 秒，参团率 {teamfight_participation}，你没有放弃。",
+        "quip": "这么长的局，参团率还这么高——没有摆烂，是真的在拼。",
+        "verdict": "本庭认定：意志没有问题，结果欠运气。",
+        "safe": "全程保持高参与度，态度合格。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_kills_highlight",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort",
+        "meme"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "kills",
+            "op": ">=",
+            "value": 10
+          }
+        ]
+      },
+      "requires": [
+        "kills"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "打够了",
+        "fact": "{kills} 个人头，输了也有可以截图的数据。",
+        "quip": "{kills} 个人头，就算输了也不算白玩这局。",
+        "verdict": "本庭认定：个人击杀贡献可观，战绩有据可查。",
+        "safe": "个人击杀数据亮眼，虽败犹荣。"
+      },
+      "variants": [
+        {
+          "quip": "输了，但{kills}个人头是真实的，留着发截图。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_heal_carry",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "hero_healing",
+            "op": ">=",
+            "value": 4000
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "support",
+              "hard_support"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "hero_healing"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "输血不停",
+        "fact": "治疗量 {hero_healing}，你一直在给人续命。",
+        "quip": "治疗量给够了，你续的命最后没有变成胜利，不是你的问题。",
+        "verdict": "本庭认定：辅助治疗贡献充分，失利另有归因。",
+        "safe": "治疗贡献充分，辅助工作到位。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_stack_support",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "camps_stacked",
+            "op": ">=",
+            "value": 4
+          },
+          {
+            "metric": "role",
+            "op": "in",
+            "value": [
+              "support",
+              "hard_support"
+            ]
+          }
+        ]
+      },
+      "requires": [
+        "camps_stacked"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "堆野尽职",
+        "fact": "{camps_stacked} 次堆野，核心的钱你帮着准备好了。",
+        "quip": "堆了 {camps_stacked} 次野，这种细节辅助很多人不做的。",
+        "verdict": "本庭认定：辅助细节工作到位，资源支援充分。",
+        "safe": "堆野贡献充分，辅助细节工作到位。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_eye_removed",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "observer_kills",
+            "op": ">=",
+            "value": 4
+          }
+        ]
+      },
+      "requires": [
+        "observer_kills"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "排眼专家",
+        "fact": "{observer_kills} 个对方假眼被你排掉，视野压制有贡献。",
+        "quip": "对面的眼你排了 {observer_kills} 个——知道哪里有眼才能排。",
+        "verdict": "本庭认定：视野对抗有效，辅助细节到位。",
+        "safe": "排眼贡献可观，视野对抗工作到位。"
+      },
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
+      "id": "consolation_assist_machine",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort",
+        "fact"
+      ],
+      "trigger": {
+        "all": [
+          {
+            "metric": "assists",
+            "op": ">=",
+            "value": 15
+          },
+          {
+            "metric": "deaths",
+            "op": "<=",
+            "value": 6
+          }
+        ]
+      },
+      "requires": [
+        "assists",
+        "deaths"
+      ],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "助攻不虚",
+        "fact": "{assists} 次助攻，你参与了大部分的人头。",
+        "quip": "{assists} 助攻——你在场，只是最后刀没给到你。",
+        "verdict": "本庭认定：参与度合格，助攻数据有据可查。",
+        "safe": "助攻数据充分，积极参与了团队战斗。"
+      },
+      "variants": [
+        {
+          "quip": "助攻大哥，队友的人头里有你一半的功劳。"
+        }
+      ],
+      "source": {
+        "origin": "产品自拟",
+        "raw": "",
+        "note": ""
+      }
+    },
+    {
       "id": "victory_mvp",
       "category": "victory",
       "severity": 0,
@@ -2484,6 +3466,100 @@
         "origin": "产品自拟",
         "raw": "",
         "note": ""
+      }
+    },
+    {
+      "id": "victory_generic_contribution",
+      "category": "victory",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "requires": [],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "在场有功",
+        "fact": "本局胜利有他一份。",
+        "quip": "本局在场，账上有他一份。",
+        "verdict": "本庭认定：稳定贡献同样值得记功。",
+        "safe": "本局为团队胜利作出贡献。"
+      },
+      "source": {
+        "origin": "产品占位",
+        "raw": "",
+        "note": "writer 词库合并后替换"
+      }
+    },
+    {
+      "id": "victory_generic_support",
+      "category": "victory_support",
+      "severity": 0,
+      "tone": [
+        "praise"
+      ],
+      "requires": [],
+      "forbidden_context": [
+        "defeat"
+      ],
+      "text": {
+        "tag": "团队拼图",
+        "fact": "胜利链条完整。",
+        "quip": "聚光灯之外，也有人把活干完了。",
+        "verdict": "本庭认定：甘草之功，不可不记。",
+        "safe": "团队协作表现稳定。"
+      },
+      "source": {
+        "origin": "产品占位",
+        "raw": "",
+        "note": "writer 词库合并后替换"
+      }
+    },
+    {
+      "id": "consolation_generic_effort",
+      "category": "consolation",
+      "severity": 0,
+      "tone": [
+        "comfort"
+      ],
+      "requires": [],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "虽败犹荣",
+        "fact": "败局中仍有亮点。",
+        "quip": "这局没赢，但你的活没有白干。",
+        "safe": "败局中仍有值得肯定的表现。"
+      },
+      "source": {
+        "origin": "产品占位",
+        "raw": "",
+        "note": "writer 词库合并后替换"
+      }
+    },
+    {
+      "id": "consolation_generic_support",
+      "category": "consolation_support",
+      "severity": 0,
+      "tone": [
+        "comfort"
+      ],
+      "requires": [],
+      "forbidden_context": [
+        "victory"
+      ],
+      "text": {
+        "tag": "逆风尽力",
+        "fact": "逆风局仍完成职责。",
+        "quip": "队伍倒了，活还是有人干了。",
+        "safe": "逆风阶段仍保持了有效贡献。"
+      },
+      "source": {
+        "origin": "产品占位",
+        "raw": "",
+        "note": "writer 词库合并后替换"
       }
     }
   ]

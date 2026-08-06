@@ -150,6 +150,7 @@ async def test_monthly_stats_are_self_consistent(
             {"player_id": guilty_a.id, "display_name": "A", "count": 2},
             {"player_id": guilty_b.id, "display_name": "B", "count": 1},
         ],
+        "mvp_leaderboard": [],
     }
 
 
