@@ -137,3 +137,11 @@ def test_polarity_copy_table_and_placeholder_memes_are_backend_contracts() -> No
         _verified_entry(entries[entry_id], meme_db["metrics"])
         for entry_id in placeholder_ids
     )
+
+
+def test_positive_meme_severity_is_always_zero() -> None:
+    entries = _load_meme_db()["entries"]
+
+    for entry in entries:
+        if entry["category"].startswith(("consolation", "victory")):
+            assert entry["severity"] == 0, entry["id"]
