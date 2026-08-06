@@ -223,8 +223,7 @@ function toNominees(detail, weWon) {
   const scrubbed = sus
     .map(s => Object.assign({}, s, { evidence: meritSafe(s.evidence, weWon) }))
     .filter(s => s.evidence && s.evidence.length);
-  const top = scrubbed.slice(0, 3);
-  if (!top.length) return [];
+  if (!scrubbed.length) return [];
   const ours = (detail.players || []).filter(p => p.is_our_team);
   // 口径 A：steam_id（= OpenDota account_id）→ 数据库 player_id
   const bySteam = {};
@@ -246,6 +245,15 @@ function toNominees(detail, weWon) {
       return ordinalToDbId[n - 1] ?? null;
     return null;
   };
+  // 未登记的队友（偶尔同队的路人）解析不出库内 player_id，投出去后端会 422。
+  // 契约：他们不进提名候选池——被排除，而不是「显示但点不动」。
+  // 但若整队都解析不出（离线原型 / 纯 fixture），仍回退到原始前三名，
+  // 否则会出现空提名页，比不可投更糟。
+  const withId = scrubbed.map(s => Object.assign({}, s, {
+    _pid: resolve((s.player || {}).id)
+  }));
+  const votablePool = withId.filter(s => s._pid != null);
+  const top = (votablePool.length ? votablePool : withId).slice(0, 3);
   const max = Math.max.apply(null, top.map(s => s.score)) || 1;
   return top.map(s => {
     const p = s.player || {};
@@ -253,7 +261,7 @@ function toNominees(detail, weWon) {
     return {
       nm: p.name,
       hr: (p.hero || "") + (pos ? " · " + pos : ""),
-      player_id: resolve(p.id),
+      player_id: s._pid,
       score: Math.round((s.score / max) * 100),
       charge: s.evidence.map(e => e.fact).join(" "),
       // 多条罪证可能引用同一指标（如"假眼数 3"），去重后最多 4 枚

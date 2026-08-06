@@ -1673,7 +1673,8 @@ function renderNominees(){
   }
   NOMINEES.forEach((n,i)=>{
     const d=document.createElement('div');
-    // 未登记的人不能被表决（后端要库内 player_id），先在视觉上标出来
+    // 兜底：联机时未登记者已在 toNominees 里排除出候选池，这里只会在
+    // 「全队都解析不出身份」的极端情况下出现，说明原因而不是让人干点。
     const votable = !(window.Trial && Trial.id) || n.player_id != null;
     d.className='nom' + (votable ? '' : ' unreg'); d.dataset.i=i;
     d.style.animation=`fade .45s ease ${i*0.12}s both`;
