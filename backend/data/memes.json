@@ -2672,7 +2672,7 @@
     {
       "id": "consolation_stun_hero",
       "category": "consolation",
-      "severity": 1,
+      "severity": 0,
       "tone": [
         "comfort",
         "fact"
@@ -2714,7 +2714,7 @@
     {
       "id": "consolation_long_game",
       "category": "consolation",
-      "severity": 1,
+      "severity": 0,
       "tone": [
         "comfort"
       ],
